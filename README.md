@@ -181,6 +181,16 @@ Jiná architektura:
 
 Výstup je uložen v `dist`. Skript provede `go test ./...`, `go vet ./...` a sestaví GUI aplikaci s parametrem `-H=windowsgui`.
 
+### Manifest aplikace
+
+Soubory `cmd/essprovisioner/rsrc_windows_*.syso` obsahují manifest Windows, který zapíná moderní vzhled ovládacích prvků (Common Controls 6) a podporu vysokého DPI. `go build` je do programu přidá automaticky. Po úpravě `cmd/essprovisioner/winres/winres.json` je vygenerujte znovu:
+
+```powershell
+go install github.com/tc-hib/go-winres@latest
+cd cmd\essprovisioner
+go-winres make --arch amd64,386,arm64
+```
+
 ## Bezpečnost vzdálené konfigurace
 
 Vzdálený koncový bod je privilegovaná hranice důvěry. Jeho odpověď může určit, které soubory aplikace stáhne a spustí s oprávněním správce. Kompromitovaný server může proto vést ke spuštění škodlivého instalátoru, zejména pokud položky nemají platný SHA-256.
@@ -206,7 +216,8 @@ internal/config/          Vložená konfigurace, vzdálené načítání a valid
 internal/download/        Stahování instalátorů, limity, mezipaměť a SHA-256
 internal/install/         Spuštění EXE/MSI, uzamčení souboru a návratové kódy
 internal/systemdialogs/   Otevření Možností napájení a Vlastností systému
-internal/ui/              Hlavní okno a samostatné okno protokolu přes Win32
+internal/ui/              Okna aplikace (hlavní, protokol, systémové informace) přes Win32
+internal/ui/win32/        Tenká vrstva nad voláními Win32 API používaná oknem aplikace
 docs/                     Schémata, ukázkový JSON a ukázkový koncový bod PHP
 build.ps1                 Testy, statická kontrola a sestavení GUI aplikace
 ```
