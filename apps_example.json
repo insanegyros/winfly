@@ -1,0 +1,228 @@
+{
+    "apps": [
+        {
+            "id": 3,
+            "name": "Ashampoo PDF Pro 5",
+            "description": "Ashampoo PDF Pro 5, vyžaduje licenci",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/ashampoo_pdf_pro_5.exe",
+            "sha256": "",
+            "fileName": "apdf5pro.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Office 21 (CZ)",
+            "description": "Office 21",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/CZOffice21.exe",
+            "sha256": "",
+            "fileName": "czoffice21.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Office 24 (CZ)",
+            "description": "Office 24",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/CZOffice24.exe",
+            "sha256": "",
+            "fileName": "czoffice24.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Office 24 (EN)",
+            "description": "Office 24",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/ENOffice24.exe",
+            "sha256": "",
+            "fileName": "enoffice24.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 7,
+            "name": "Google Chrome",
+            "description": "Jazyk EN",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/ChromeSetup.exe",
+            "sha256": "",
+            "fileName": "chrome.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 8,
+            "name": "PDF24",
+            "description": "Free nástroj pro správu PDF souborů",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/pdf24.exe",
+            "sha256": "",
+            "fileName": "pdf24.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 9,
+            "name": "Office 21 (SK)",
+            "description": "Office 21",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/SKOffice21.exe",
+            "sha256": "",
+            "fileName": "skoffice21.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 10,
+            "name": "TeamViewer",
+            "description": "",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/TeamViewer_Setup_x64.exe",
+            "sha256": "",
+            "fileName": "teamviewer.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 11,
+            "name": "Mozilla Thunderbird",
+            "description": "",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/Thunderbird_153.exe",
+            "sha256": "",
+            "fileName": "thunderbird.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 12,
+            "name": "WhatsApp",
+            "description": "",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/WhatsAppSetup.exe",
+            "sha256": "",
+            "fileName": "whatsapp.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 13,
+            "name": "Adobe Acrobat Reader",
+            "description": "acrobat reader free",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/Reader_cz_install.exe",
+            "sha256": "",
+            "fileName": "Reader_cz_install.exe",
+            "installerType": "exe",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 14,
+            "name": "Avast Business Agent",
+            "description": "Avast Business Agent s výchozím nastavením, ,,Tichá\" instalace (neukazuje se žádné GUI)",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/avast_business_agent_setup_online.exe",
+            "sha256": "a817d053f0ce4baaff0338b2f1903d51a425ff67fea4a75374bcd33fb36aaeb1",
+            "fileName": "avast_business_agent_setup_online.exe",
+            "installerType": "exe",
+            "arguments": [
+                "-sil \"1\"",
+                "-lid \"1\""
+            ],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        },
+        {
+            "id": 15,
+            "name": "RaspberryPi Imager 2.0",
+            "description": "",
+            "enabled": true,
+            "url": "https://static.essensworld.com/helpdesk/imager_2.0.0.exe",
+            "sha256": "",
+            "fileName": "imager_2.0.0.exe",
+            "installerType": "auto",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
+        }
+    ]
+}

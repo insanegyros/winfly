@@ -1,0 +1,12 @@
+{
+  "productName": "ESSENS Provisioner",
+  "cacheDirectory": "${ProgramData}\\ESSProvisioner\\cache",
+  "remoteConfigUrl": "https://mlmadmin.essensworld.com/helpdesk/pradmin/apps.json",
+  "network": {
+    "configTimeoutSeconds": 30,
+    "maxConfigBytes": 1048576,
+    "timeoutSeconds": 900,
+    "maxDownloadBytes": 2147483648,
+    "allowHttp": false
+  }
+}

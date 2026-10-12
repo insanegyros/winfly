@@ -1,0 +1,21 @@
+{
+  "apps": [
+    {
+      "id": 1,
+      "name": "Example App",
+      "description": "Example app, either edit apps.json or utilize the admin panel",
+      "enabled": true,
+      "url": "https://example.com/installer.exe",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000",
+      "fileName": "installer.exe",
+      "installerType": "auto", //exe, msi
+      "arguments": ["/silent"],
+      "wait": true,
+      "successExitCodes": [
+        0,
+        1641,
+        3010
+      ]
+    }
+  ]
+}
