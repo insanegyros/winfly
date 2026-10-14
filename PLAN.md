@@ -153,6 +153,39 @@ Limit: WinFly waits for the process it started. An installer that starts a
 child process and exits at once would see the image unmounted under it;
 such installers need their own "wait" switch in `arguments`.
 
+### Workflow integration
+
+The full sequence for an ISO/IMG app is: download (`download.Fetch`) →
+SHA-256 check (download, then again under the lock in `install.Run`) →
+mount → validate `autorun.inf` → run the installer → wait → unmount.
+
+- **Selected and batch installs:** `ui/installation.go` already calls
+  `downloader.Fetch` then `install.Run` per selected app, one after another,
+  and logs and skips a failed app. Images use exactly this path; the GUI
+  holds no image logic.
+- **Nothing runs early:** the installer is started only after mounting and
+  autorun validation succeeded. A corrupted image fails the SHA-256 check;
+  an unsupported, unmountable or autorun-less image stops only that app
+  with an `install.ImageError` (`Stage`: lock, mount or autorun; the cause
+  still matches `errors.Is`, e.g. `diskimage.ErrNoAutorun`).
+- **Unmounting:** only images WinFly mounted itself are unmounted, after the
+  installer exits, on success, failure and cancellation (`defer`). If the
+  explicit detach fails, closing the handle still detaches a WinFly-owned
+  image because the attach is not permanent.
+- **`wait=false`:** never allowed for images (the image would be unmounted
+  under a running installer). The app list rejects it when loading, the same
+  rule MSI already has, and `install.Run` refuses it again before mounting.
+- **Same image twice / concurrent jobs:** `lockImage` lets only one install
+  use a given image file at a time (case-insensitive path), so one job can
+  never unmount an image another job is installing from, and an image is
+  never mounted twice by WinFly. Waiting can be cancelled through `ctx`.
+  The UI itself also runs only one batch at a time (`installing` flag).
+- **Remote files and catalog:** WinFly only downloads; it never deletes or
+  changes remote files or app list entries.
+- **Download cleanup:** unchanged policy. A failed download's `.part` file is
+  removed; a verified image stays in the cache and is reused next time when
+  its SHA-256 matches, exactly like EXE/MSI files.
+
 ### GUI
 
 No changes. `ui/installation.go` already calls `install.Run`, so ISO/IMG
@@ -171,6 +204,7 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | 3 | Reusable mounting component: format check, mount/unmount via `virtdisk.dll`, volume and drive letter lookup, ownership, cancellation, descriptive errors; tests with a fake OS layer. Done and tested on Linux and under Wine; real mounting still needs a test on real Windows 10/11 (step 9) | `internal/diskimage/` (new) | ✅ |
 | 3b | Autorun-based installer validation: find `autorun.inf`, parse `[AutoRun]` `open`/`shellexecute`, split quoted command lines, reject unsafe paths, icon-only and malformed files, check the target exists; table-driven tests | `internal/diskimage/autorun.go`, `cmdline.go` (new), tests | ✅ |
 | 4 | Run the autorun installer from the mounted image through the existing EXE/MSI path; `runCommand` shared with plain installers; image kept mounted until the installer exits; tests incl. a real process launch (test binary as fake installer) | `internal/install/image.go` (new), `installer.go`, `image_test.go` (new), `installer_test.go` | ✅ |
+| 4b | Workflow integration: per-image lock against concurrent/duplicate use, `ImageError` with the failing stage, checks of batch, cancellation, `wait=false` and cleanup behaviour; tests | `internal/install/image_lock.go`, `image_error.go` (new), `image.go`, tests | ✅ |
 | 5a | Raise the default `maxDownloadBytes` from 2 GiB to 8 GiB for big ISOs | `internal/config/config.go`, `config.json`, `internal/download/downloader.go`, `README.md` | ✅ |
 | 5b | Download: accept image MIME types in the `Accept` header | `internal/download/downloader.go` | ⬜ |
 | 6 | GUI: nothing needed; ISO/IMG apps use the existing install flow and log window | — | ✅ |

@@ -2,7 +2,6 @@ package install
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	"jandy.cz/winfly/internal/config"
@@ -26,10 +25,16 @@ var mountDiskImage = func(ctx context.Context, imagePath string, log Logger) (ro
 // stejným způsobem jako samostatný instalátor EXE nebo MSI a obraz odpojí až
 // po jeho ukončení.
 func runFromImage(ctx context.Context, app config.AppConfig, imagePath string, log Logger) (Result, error) {
+	unlock, err := lockImage(ctx, imagePath)
+	if err != nil {
+		return Result{}, &ImageError{App: app.Name, Stage: StageLock, Err: err}
+	}
+	defer unlock()
+
 	log("Připojuje se obraz disku aplikace %s", app.Name)
 	root, unmount, err := mountDiskImage(ctx, imagePath, log)
 	if err != nil {
-		return Result{}, fmt.Errorf("připojení obrazu disku aplikace %s: %w", app.Name, err)
+		return Result{}, &ImageError{App: app.Name, Stage: StageMount, Err: err}
 	}
 	log("Obraz disku je připojen jako %s", root)
 	defer func() {
@@ -42,7 +47,7 @@ func runFromImage(ctx context.Context, app config.AppConfig, imagePath string, l
 
 	installer, err := diskimage.ReadAutorun(root)
 	if err != nil {
-		return Result{}, fmt.Errorf("ověření instalátoru v obrazu disku aplikace %s: %w", app.Name, err)
+		return Result{}, &ImageError{App: app.Name, Stage: StageAutorun, Err: err}
 	}
 	l, err := imageLaunch(app, installer, root)
 	if err != nil {

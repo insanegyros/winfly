@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
+	"time"
 
 	"jandy.cz/winfly/internal/config"
 	"jandy.cz/winfly/internal/diskimage"
@@ -197,11 +198,54 @@ func TestRunFromImageWithoutAutorun(t *testing.T) {
 	if !errors.Is(err, diskimage.ErrNoAutorun) {
 		t.Fatalf("Run() = %v, očekávána ErrNoAutorun", err)
 	}
+	var imageErr *ImageError
+	if !errors.As(err, &imageErr) || imageErr.Stage != StageAutorun {
+		t.Fatalf("Run() = %v, očekávána ImageError v kroku %q", err, StageAutorun)
+	}
 	if _, statErr := os.Stat(img.output); statErr == nil {
 		t.Fatal("bez autorun.inf se nesmí nic spustit")
 	}
 	if !img.unmounted {
 		t.Fatal("obraz zůstal připojený")
+	}
+}
+
+func TestRunFromImageStopsWhenMountFails(t *testing.T) {
+	img := newFakeImage(t, "[AutoRun]\nopen=setup\\setup.exe\n")
+	mountDiskImage = func(context.Context, string, Logger) (string, func() error, error) {
+		return "", nil, fmt.Errorf("%w: test", diskimage.ErrUnsupportedFormat)
+	}
+
+	app := config.AppConfig{Name: "Office", InstallerType: "iso"}
+	_, err := Run(context.Background(), app, writeImageFile(t), nil)
+	var imageErr *ImageError
+	if !errors.As(err, &imageErr) || imageErr.Stage != StageMount || !errors.Is(err, diskimage.ErrUnsupportedFormat) {
+		t.Fatalf("Run() = %v, očekávána ImageError v kroku %q", err, StageMount)
+	}
+	if _, statErr := os.Stat(img.output); statErr == nil {
+		t.Fatal("nepřipojený obraz nesmí nic spustit")
+	}
+}
+
+func TestRunFromImageWaitsForOtherInstallOfSameImage(t *testing.T) {
+	img := newFakeImage(t, "[AutoRun]\nopen=setup\\setup.exe\n")
+	imagePath := writeImageFile(t)
+	unlock, err := lockImage(context.Background(), imagePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	app := config.AppConfig{Name: "Office", InstallerType: "iso"}
+	_, err = Run(ctx, app, imagePath, nil)
+	var imageErr *ImageError
+	if !errors.As(err, &imageErr) || imageErr.Stage != StageLock {
+		t.Fatalf("Run() = %v, očekávána ImageError v kroku %q", err, StageLock)
+	}
+	if img.unmounted {
+		t.Fatal("obraz používaný jinou instalací se nesmí připojit ani odpojit")
 	}
 }
 
