@@ -190,7 +190,7 @@ func (w *mainWindow) showFocusedAppDetails() {
 		}
 		index = selected[0]
 	}
-	w.details.show(apps[index])
+	w.details.show(apps[index], installerTypeText(apps[index], w.app.imageStatuses))
 }
 
 // setInstallControlsEnabled enables or disables everything used to start an

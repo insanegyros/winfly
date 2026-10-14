@@ -159,7 +159,7 @@ func TestRunFromImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run() vrátil chybu: %v", err)
 	}
-	if result.ExitCode != 3010 || !result.RestartRequired {
+	if result.ExitCode != 3010 || !result.RestartRequired || !result.ImageValidated {
 		t.Fatalf("výsledek = %+v, očekáván kód 3010 s restartem", result)
 	}
 
@@ -182,7 +182,7 @@ func TestRunFromImageRejectsFailedInstaller(t *testing.T) {
 
 	app := config.AppConfig{Name: "Office", InstallerType: "iso"}
 	result, err := Run(context.Background(), app, writeImageFile(t), nil)
-	if err == nil || result.ExitCode != 5 {
+	if err == nil || result.ExitCode != 5 || !result.ImageValidated {
 		t.Fatalf("Run() = %+v, %v; očekávána chyba s kódem 5", result, err)
 	}
 	if !img.unmounted {

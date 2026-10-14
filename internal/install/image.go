@@ -55,7 +55,9 @@ func runFromImage(ctx context.Context, app config.AppConfig, imagePath string, l
 	}
 
 	log("Spouští se instalátor aplikace %s z obrazu disku: %s (položka %s v autorun.inf)", app.Name, installer.RelativePath, installer.Entry)
-	return runCommand(ctx, app, l, log)
+	result, err := runCommand(ctx, app, l, log)
+	result.ImageValidated = true
+	return result, err
 }
 
 // imageLaunch sestaví spuštění instalátoru z obrazu. Parametry z autorun.inf

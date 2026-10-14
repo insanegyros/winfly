@@ -188,9 +188,32 @@ mount → validate `autorun.inf` → run the installer → wait → unmount.
 
 ### GUI
 
-No changes. `ui/installation.go` already calls `install.Run`, so ISO/IMG
-apps install through the same button, and their progress reaches the log
-window through `logf`.
+Minimal, targeted changes; `ui.go` itself is unchanged, and the DxDiag,
+Power Options and Domain/Workgroup code is not touched. The state lives
+outside the GUI in `install.ImageStatuses` (`internal/install/image_status.go`).
+
+- **List and details:** ISO/IMG apps appear in the same list as EXE/MSI.
+  The "Přehled aplikace" panel has one new row, "Typ instalátoru", e.g.
+  `EXE`, `MSI` or `Obraz disku ISO — neověřeno, ověří se před instalací`.
+- **States:** every image starts as *neověřeno* (unverified). After an
+  install attempt it becomes *ověřeno, lze instalovat* when mounting and
+  autorun validation succeeded (even if the installer then failed), or
+  *neplatný, instalace je zakázána* when the format is unsupported or
+  `autorun.inf` is missing or invalid. Temporary failures (network, missing
+  permission, no volume, cancellation) leave the state unchanged.
+- **Blocking:** an invalid image is skipped before it is downloaded again,
+  with its message in the result dialog. The state is kept per image
+  (app ID, URL, SHA-256, file name) for the running program; a changed image
+  in the app list starts unverified again, and restarting WinFly revalidates.
+- **Messages:** the result dialog shows the fixed Czech texts
+  (`install.MessageNoAutorun`, `MessageInvalidAutorun`,
+  `MessageUnsupportedFormat`, picked by `install.UserMessage`); the log keeps
+  the full technical error.
+- **Not blocking the GUI:** download, mount, validation and installation keep
+  running on the existing background goroutine; the panel refreshes when the
+  batch finishes.
+
+Screenshots under Wine: `iso-gui/` in the project files.
 
 ## Steps and progress
 
@@ -207,7 +230,7 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | 4b | Workflow integration: per-image lock against concurrent/duplicate use, `ImageError` with the failing stage, checks of batch, cancellation, `wait=false` and cleanup behaviour; tests | `internal/install/image_lock.go`, `image_error.go` (new), `image.go`, tests | ✅ |
 | 5a | Raise the default `maxDownloadBytes` from 2 GiB to 8 GiB for big ISOs | `internal/config/config.go`, `config.json`, `internal/download/downloader.go`, `README.md` | ✅ |
 | 5b | Download: accept image MIME types in the `Accept` header | `internal/download/downloader.go` | ⬜ |
-| 6 | GUI: nothing needed; ISO/IMG apps use the existing install flow and log window | — | ✅ |
+| 6 | GUI: installer type and image state in the details panel, unverified/installable/invalid states, invalid images blocked, the three Czech messages; state kept outside the GUI; tests and Wine screenshots | `internal/install/image_status.go` (new), `image.go`, `installer.go`, `internal/ui/app.go`, `app_details.go`, `installation.go`, `main_window.go` | ✅ |
 | 7 | Docs: README table for `installerType`, the autorun.inf requirement; ISO example in `apps_example.json` | `README.md`, `apps_example.json` | ⬜ |
 | 8 | Admin panel (postponed by Jandy, do later): allow `.iso`/`.img` uploads, `iso`/`img` types, `.iso`/`.img` file names | `admin_panel_web/ProvisionerJsonCRUD.php`, `api.php`, `ProvisionerChunkUpload.php`, `index.php`, `assets/admin.js` | ⬜ |
 | 9 | Build with `build.ps1`, test on real Windows with an ISO and an IMG, both EXE and MSI inside | — | ⬜ |

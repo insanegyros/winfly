@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"jandy.cz/winfly/internal/config"
+	"jandy.cz/winfly/internal/install"
 )
 
 // appDetails is the "Přehled aplikace" panel of the main window. It shows
@@ -14,6 +15,7 @@ type appDetails struct {
 	url         control
 	arguments   control
 	checksum    control
+	kind        control
 }
 
 func newAppDetails(f *form, b box) appDetails {
@@ -24,10 +26,12 @@ func newAppDetails(f *form, b box) appDetails {
 		url:         rows.field("Adresa pro stažení:"),
 		arguments:   rows.textArea("Parametry instalátoru:", 3),
 		checksum:    rows.text("Platnost SHA-256:"),
+		kind:        rows.text("Typ instalátoru:"),
 	}
 }
 
-func (d appDetails) show(app config.AppConfig) {
+// show fills the panel with app. kindText is from installerTypeText.
+func (d appDetails) show(app config.AppConfig, kindText string) {
 	d.name.setText(app.Name)
 	d.description.setText(orNotSpecified(app.Description))
 	d.url.setText(app.URL)
@@ -37,6 +41,21 @@ func (d appDetails) show(app config.AppConfig) {
 	} else {
 		d.checksum.setText("✗ Chybí nebo je neplatný — ověřování je vypnuto")
 	}
+	d.kind.setText(kindText)
+}
+
+// installerTypeText describes the installer type, and for ISO/IMG images
+// also whether the image passed validation.
+func installerTypeText(app config.AppConfig, statuses *install.ImageStatuses) string {
+	kind, err := config.ResolveInstallerType(app.InstallerType, app.FileName)
+	if err != nil {
+		return "Neznámý — nelze určit z názvu souboru"
+	}
+	status, _, isImage := statuses.Status(app)
+	if !isImage {
+		return strings.ToUpper(kind)
+	}
+	return "Obraz disku " + strings.ToUpper(kind) + " — " + status.String()
 }
 
 // showNoApps explains why the app list is empty.
@@ -57,6 +76,7 @@ func (d appDetails) clear(message string) {
 	d.url.setText("")
 	d.arguments.setText("")
 	d.checksum.setText("—")
+	d.kind.setText("—")
 }
 
 func orNotSpecified(value string) string {

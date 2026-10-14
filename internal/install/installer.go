@@ -18,6 +18,9 @@ type Result struct {
 	ExitCode        int
 	StartedOnly     bool
 	RestartRequired bool
+	// ImageValidated je true, pokud obraz disku šel připojit a jeho
+	// autorun.inf prošel ověřením, i když instalátor pak skončil chybou.
+	ImageValidated bool
 }
 
 func Run(ctx context.Context, app config.AppConfig, installerPath string, log Logger) (Result, error) {
