@@ -1,6 +1,6 @@
-# ESSENS Provisioner
+# WinFly
 
-ESSENS Provisioner je aplikace v jazyce Go určená výhradně pro Windows 10 a Windows 11. Používá přímé rozhraní Win32 bez webového rozhraní a bez externího GUI frameworku. Umožňuje načíst aktuální seznam aplikací ze vzdálené adresy, stáhnout vybrané instalátory, volitelně ověřit jejich SHA-256 a spustit je s oprávněním správce.
+WinFly je aplikace v jazyce Go určená výhradně pro Windows 10 a Windows 11. Používá přímé rozhraní Win32 bez webového rozhraní a bez externího GUI frameworku. Umožňuje načíst aktuální seznam aplikací ze vzdálené adresy, stáhnout vybrané instalátory, volitelně ověřit jejich SHA-256 a spustit je s oprávněním správce.
 
 Aplikace také otevírá systémová okna Windows pro nastavení napájení a členství počítače v doméně nebo pracovní skupině. Tato nastavení sama nemění.
 
@@ -20,7 +20,7 @@ Vzdálený seznam se záměrně neukládá jako záložní konfigurace. Každé 
 
 ## Libovolný typ adresy koncového bodu
 
-ESSENS Provisioner nekontroluje příponu cesty ani hodnotu hlavičky `Content-Type`. Rozhodující je pouze úspěšný stav HTTP a platný obsah JSON. Podporovány jsou například obě následující adresy:
+WinFly nekontroluje příponu cesty ani hodnotu hlavičky `Content-Type`. Rozhodující je pouze úspěšný stav HTTP a platný obsah JSON. Podporovány jsou například obě následující adresy:
 
 ```text
 https://jandy.cz/config.json
@@ -33,12 +33,12 @@ Aplikace přijme i UTF-8 BOM na začátku odpovědi. Neznámé vlastnosti jsou o
 
 ## Vložená konfigurace
 
-Soubor `internal/config/config.json` se při sestavení vloží do `ESSProvisioner.exe`. Obsahuje stabilní nastavení aplikace a adresu vzdáleného seznamu, nikoli samotný seznam aplikací.
+Soubor `internal/config/config.json` se při sestavení vloží do `WinFly.exe`. Obsahuje stabilní nastavení aplikace a adresu vzdáleného seznamu, nikoli samotný seznam aplikací.
 
 ```json
 {
-  "productName": "ESSENS Provisioner",
-  "cacheDirectory": "${ProgramData}\\ESSProvisioner\\cache",
+  "productName": "WinFly",
+  "cacheDirectory": "${ProgramData}\\WinFly\\cache",
   "remoteConfigUrl": "https://jandy.cz/apps.php?get=applist",
   "network": {
     "configTimeoutSeconds": 30,
@@ -54,7 +54,7 @@ Soubor `internal/config/config.json` se při sestavení vloží do `ESSProvision
 
 | Vlastnost | Význam |
 |---|---|
-| `productName` | Název zobrazený v oknech aplikace. Výchozí hodnota je `ESSENS Provisioner`. |
+| `productName` | Název zobrazený v oknech aplikace. Výchozí hodnota je `WinFly`. |
 | `cacheDirectory` | Adresář pro stažené instalátory. Proměnné prostředí Windows se rozbalí za běhu. |
 | `remoteConfigUrl` | Povinná absolutní adresa vracející vzdálený JSON. Může obsahovat libovolnou cestu a parametry dotazu. |
 | `network.configTimeoutSeconds` | Celkový časový limit pro načtení vzdálené konfigurace. Výchozí hodnota je 30 sekund. |
@@ -73,8 +73,8 @@ Odpověď musí být jeden kořenový objekt s povinným polem `apps`. Prázdné
 {
   "apps": [
     {
-      "id": "ess-ukazkova-aplikace",
-      "name": "Ukázková aplikace ESSENS",
+      "id": "wf-ukazkova-aplikace",
+      "name": "Ukázková aplikace WinFly",
       "description": "Popis zobrazený v přehledu aplikace.",
       "enabled": true,
       "url": "https://jandy.cz/installer.exe",
@@ -117,7 +117,7 @@ Pro produkční použití je vhodné uvádět SHA-256 získaný z důvěryhodné
 Get-FileHash .\installer.exe -Algorithm SHA256
 ```
 
-Při platném otisku ESSENS Provisioner:
+Při platném otisku WinFly:
 
 1. použije soubor z mezipaměti pouze tehdy, když jeho otisk souhlasí;
 2. počítá SHA-256 během zápisu stahovaných dat do dočasného souboru;
@@ -128,7 +128,7 @@ Při chybějícím nebo neplatném otisku instalace zůstává dostupná, ale p�
 
 ## Stahování a spuštění instalátorů
 
-Instalátory nejsou součástí `ESSProvisioner.exe`. Po stisknutí tlačítka **Nainstalovat vybrané** se stáhnou z adres uvedených v právě načteném vzdáleném seznamu.
+Instalátory nejsou součástí `WinFly.exe`. Po stisknutí tlačítka **Nainstalovat vybrané** se stáhnou z adres uvedených v právě načteném vzdáleném seznamu.
 
 - EXE se spustí přímo s uvedeným polem parametrů.
 - MSI se spustí prostřednictvím `msiexec.exe /i`.
@@ -183,11 +183,11 @@ Výstup je uložen v `dist`. Skript provede `go test ./...`, `go vet ./...` a se
 
 ### Manifest aplikace
 
-Soubory `cmd/essprovisioner/rsrc_windows_*.syso` obsahují manifest Windows, který zapíná moderní vzhled ovládacích prvků (Common Controls 6) a podporu vysokého DPI. `go build` je do programu přidá automaticky. Po úpravě `cmd/essprovisioner/winres/winres.json` je vygenerujte znovu:
+Soubory `cmd/winfly/rsrc_windows_*.syso` obsahují manifest Windows, který zapíná moderní vzhled ovládacích prvků (Common Controls 6) a podporu vysokého DPI. `go build` je do programu přidá automaticky. Po úpravě `cmd/winfly/winres/winres.json` je vygenerujte znovu:
 
 ```powershell
 go install github.com/tc-hib/go-winres@latest
-cd cmd\essprovisioner
+cd cmd\winfly
 go-winres make --arch amd64,386,arm64
 ```
 
@@ -202,7 +202,7 @@ Pro produkční provoz:
 - uvádějte důvěryhodné SHA-256 pro každou aplikaci;
 - zvažte navíc kontrolu podpisu Authenticode;
 - nepředávejte v URL, konfiguraci ani parametrech instalační tajné údaje;
-- podepište `ESSProvisioner.exe` firemním certifikátem;
+- podepište `WinFly.exe` firemním certifikátem;
 - první spuštění ověřte v jednorázovém virtuálním stroji Windows 10 a Windows 11.
 
 Další podrobnosti jsou v `SECURITY.md`.
@@ -210,7 +210,7 @@ Další podrobnosti jsou v `SECURITY.md`.
 ## Struktura projektu
 
 ```text
-cmd/essprovisioner/       Vstupní bod aplikace Windows
+cmd/winfly/       Vstupní bod aplikace Windows
 internal/admin/           Zvýšení oprávnění UAC a chybový dialog
 internal/config/          Vložená konfigurace, vzdálené načítání a validace JSON
 internal/download/        Stahování instalátorů, limity, mezipaměť a SHA-256

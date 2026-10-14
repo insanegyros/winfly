@@ -143,11 +143,11 @@ func localizedJSONError(err error) error {
 func applyConfigDefaults(cfg *Config) {
 	cfg.ProductName = strings.TrimSpace(cfg.ProductName)
 	if cfg.ProductName == "" {
-		cfg.ProductName = "ESSENS Provisioner"
+		cfg.ProductName = "WinFly"
 	}
 	cfg.CacheDirectory = strings.TrimSpace(cfg.CacheDirectory)
 	if cfg.CacheDirectory == "" {
-		cfg.CacheDirectory = `${ProgramData}\ESSProvisioner\cache`
+		cfg.CacheDirectory = `${ProgramData}\WinFly\cache`
 	}
 	cfg.RemoteConfigURL = strings.TrimSpace(cfg.RemoteConfigURL)
 	if cfg.Network.ConfigTimeoutSeconds <= 0 {

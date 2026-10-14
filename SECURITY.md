@@ -2,7 +2,7 @@
 
 ## Hranice důvěry
 
-ESSENS Provisioner běží se zvýšeným oprávněním a spouští instalátory určené vzdálenou konfigurací. Za privilegované změny vyžadující kontrolu považujte zejména:
+WinFly běží se zvýšeným oprávněním a spouští instalátory určené vzdálenou konfigurací. Za privilegované změny vyžadující kontrolu považujte zejména:
 
 - `internal/config/config.json` a hodnotu `remoteConfigUrl`;
 - obsah publikovaný vzdáleným koncovým bodem;
@@ -55,7 +55,7 @@ Do vložené ani vzdálené konfigurace, URL a parametrů nevkládejte hesla, p�
 
 ## Systémová nastavení a členství v doméně
 
-ESSENS Provisioner nezapisuje nastavení napájení, nemanipuluje s rychlým spuštěním, neshromažďuje přihlašovací údaje k doméně a nevolá rozhraní pro přímé připojení k doméně. Pouze otevírá rozhraní vlastněná Windows:
+WinFly nezapisuje nastavení napájení, nemanipuluje s rychlým spuštěním, neshromažďuje přihlašovací údaje k doméně a nevolá rozhraní pro přímé připojení k doméně. Pouze otevírá rozhraní vlastněná Windows:
 
 - Možnosti napájení v Ovládacích panelech;
 - stránku Název počítače ve Vlastnostech systému pro správu domény nebo pracovní skupiny.
@@ -66,4 +66,4 @@ Veškerou následnou autorizaci, práci s přihlašovacími údaji, kontrolu zá
 
 První spuštění proveďte v jednorázovém virtuálním stroji Windows 10 a Windows 11. Ověřte chování při firemní proxy, filtrování TLS, UAC, antiviru, EDR a zásadách řízení aplikací. Ověřte také všechny chybové scénáře vzdálené konfigurace a návratové kódy instalátorů.
 
-Výsledný `ESSProvisioner.exe` podepište a jeho kontrolní součet publikujte samostatným autentizovaným kanálem.
+Výsledný `WinFly.exe` podepište a jeho kontrolní součet publikujte samostatným autentizovaným kanálem.

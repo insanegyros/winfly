@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"jandy.cz/ess-provisioner/internal/systemdialogs"
-	"jandy.cz/ess-provisioner/internal/ui/win32"
+	"jandy.cz/winfly/internal/systemdialogs"
+	"jandy.cz/winfly/internal/ui/win32"
 )
 
 // Size of the inside of the main window, in layout units.

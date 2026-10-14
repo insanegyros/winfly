@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"jandy.cz/ess-provisioner/internal/ui/win32"
+	"jandy.cz/winfly/internal/ui/win32"
 )
 
 // Size of the inside of the log window when it first opens, in layout units.

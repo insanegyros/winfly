@@ -1,6 +1,6 @@
 {
-  "productName": "ESSENS Provisioner",
-  "cacheDirectory": "${ProgramData}\\ESSProvisioner\\cache",
+  "productName": "WinFly",
+  "cacheDirectory": "${ProgramData}\\WinFly\\cache",
   "remoteConfigUrl": "https://mlmadmin.essensworld.com/helpdesk/pradmin/apps.json",
   "network": {
     "configTimeoutSeconds": 30,

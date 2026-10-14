@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const userAgent = "ESSProvisioner/1.1"
+const userAgent = "WinFly/1.1"
 
 // FetchRemoteApps stáhne a ověří aktuální seznam aplikací. Nekontroluje
 // příponu URL ani Content-Type, takže koncovým bodem může být například PHP.

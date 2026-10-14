@@ -3,7 +3,7 @@ package ui
 import (
 	"strings"
 
-	"jandy.cz/ess-provisioner/internal/config"
+	"jandy.cz/winfly/internal/config"
 )
 
 // appDetails is the "Přehled aplikace" panel of the main window. It shows

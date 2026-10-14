@@ -1,4 +1,4 @@
-// Package ui is the Windows user interface of ESSENS Provisioner, built
+// Package ui is the Windows user interface of WinFly, built
 // directly on Win32 without any GUI framework.
 //
 // How the files fit together:
@@ -25,9 +25,9 @@ import (
 	"errors"
 	"fmt"
 
-	"jandy.cz/ess-provisioner/internal/config"
-	"jandy.cz/ess-provisioner/internal/download"
-	"jandy.cz/ess-provisioner/internal/ui/win32"
+	"jandy.cz/winfly/internal/config"
+	"jandy.cz/winfly/internal/download"
+	"jandy.cz/winfly/internal/ui/win32"
 )
 
 // Run shows the main window and blocks until the user closes it.

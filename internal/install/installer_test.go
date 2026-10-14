@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"jandy.cz/ess-provisioner/internal/config"
+	"jandy.cz/winfly/internal/config"
 )
 
 func TestCommandForMSI(t *testing.T) {

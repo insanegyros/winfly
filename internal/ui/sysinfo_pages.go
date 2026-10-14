@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"jandy.cz/ess-provisioner/internal/systeminfo"
+	"jandy.cz/winfly/internal/systeminfo"
 )
 
 // The four tabs of the system information window. Each page has a

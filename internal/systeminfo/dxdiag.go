@@ -25,7 +25,7 @@ func directXVersion(parent context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(parent, 20*time.Second)
 	defer cancel()
 
-	tempFile, err := os.CreateTemp("", "essprovisioner-dxdiag-*.xml")
+	tempFile, err := os.CreateTemp("", "winfly-dxdiag-*.xml")
 	if err != nil {
 		return "", err
 	}

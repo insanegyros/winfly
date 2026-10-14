@@ -190,15 +190,15 @@ func TestLoadRemoteAppsRejectsUnknownField(t *testing.T) {
 	}
 }
 
-func TestDefaultsUseESSENSNames(t *testing.T) {
+func TestDefaultsUseWinFlyNames(t *testing.T) {
 	cfg, err := Load([]byte(`{"remoteConfigUrl":"https://jandy.cz/apps.php"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.ProductName != "ESSENS Provisioner" {
+	if cfg.ProductName != "WinFly" {
 		t.Fatalf("ProductName = %q", cfg.ProductName)
 	}
-	if cfg.CacheDirectory != `${ProgramData}\ESSProvisioner\cache` {
+	if cfg.CacheDirectory != `${ProgramData}\WinFly\cache` {
 		t.Fatalf("CacheDirectory = %q", cfg.CacheDirectory)
 	}
 	if cfg.Network.ConfigTimeoutSeconds != 30 {
