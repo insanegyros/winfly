@@ -15,6 +15,10 @@ const (
 	MessageNoAutorun         = "Neplatný instalační obraz: v kořenovém adresáři chybí autorun.inf. Odeberte tento soubor ze seznamu instalátorů."
 	MessageInvalidAutorun    = "Neplatná konfigurace autorun.inf nebo instalační soubor nebyl nalezen."
 	MessageUnsupportedFormat = "Nepodporovaný formát obrazu disku. Soubor nelze připojit."
+
+	// Přechodné chyby, po kterých obraz zůstává neověřený.
+	messageMountFailed = "Obraz disku se nepodařilo připojit. Podrobnosti najdete v logu."
+	messageImageFailed = "Instalace z obrazu disku se nezdařila. Podrobnosti najdete v logu."
 )
 
 // RejectedImageError vrací CheckAllowed pro obraz, který dříve neprošel
@@ -140,12 +144,16 @@ func UserMessage(err error) string {
 		return rejectedErr.Message
 	}
 	var imageErr *ImageError
-	if errors.As(err, &imageErr) {
-		if message := imageUserMessage(imageErr); message != "" {
-			return message
-		}
+	if !errors.As(err, &imageErr) {
+		return err.Error()
 	}
-	return err.Error()
+	if message := imageUserMessage(imageErr); message != "" {
+		return message
+	}
+	if imageErr.Stage == StageMount {
+		return messageMountFailed
+	}
+	return messageImageFailed
 }
 
 // imageUserMessage vrátí text pro uživatele, pokud chyba znamená, že obraz

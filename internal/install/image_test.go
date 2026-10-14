@@ -20,6 +20,7 @@ import (
 const (
 	helperOutputEnv   = "WINFLY_TEST_INSTALLER_OUTPUT"
 	helperExitCodeEnv = "WINFLY_TEST_INSTALLER_EXIT_CODE"
+	helperSleepEnv    = "WINFLY_TEST_INSTALLER_SLEEP"
 )
 
 // helperRun je záznam o spuštění pomocného instalátoru.
@@ -39,6 +40,9 @@ func TestMain(m *testing.M) {
 	dir, _ := os.Getwd()
 	data, _ := json.Marshal(helperRun{Args: os.Args[1:], Dir: dir})
 	_ = os.WriteFile(output, data, 0o600)
+	if sleep, err := time.ParseDuration(os.Getenv(helperSleepEnv)); err == nil {
+		time.Sleep(sleep)
+	}
 	code, _ := strconv.Atoi(os.Getenv(helperExitCodeEnv))
 	os.Exit(code)
 }
@@ -96,6 +100,7 @@ func TestImageLaunch(t *testing.T) {
 // fakeImage připraví adresář, který test použije jako kořen připojeného
 // obrazu, a nahradí připojování obrazu.
 type fakeImage struct {
+	mounted          bool
 	root             string
 	unmounted        bool
 	ranBeforeUnmount bool
@@ -118,6 +123,7 @@ func newFakeImage(t *testing.T, autorun string) *fakeImage {
 
 	previous := mountDiskImage
 	mountDiskImage = func(context.Context, string, Logger) (string, func() error, error) {
+		img.mounted = true
 		return img.root, img.unmount, nil
 	}
 	t.Cleanup(func() { mountDiskImage = previous })
@@ -259,6 +265,99 @@ func TestRunFromImageRequiresWait(t *testing.T) {
 	}
 	if img.unmounted {
 		t.Fatal("obraz se neměl vůbec připojit")
+	}
+}
+
+func TestRunFromImageIMGWithCzechPath(t *testing.T) {
+	img := newFakeImage(t, "[AutoRun]\r\nshellexecute=setup\\Setup.exe /jazyk čeština\r\n")
+
+	imagePath := filepath.Join(t.TempDir(), "Účetnictví a kancelář", "Kancelář 2024.IMG")
+	if err := os.MkdirAll(filepath.Dir(imagePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, imagePath, []byte("obsah obrazu"))
+
+	app := config.AppConfig{Name: "Kancelář", InstallerType: "auto"}
+	result, err := Run(context.Background(), app, imagePath, nil)
+	if err != nil || !result.ImageValidated {
+		t.Fatalf("Run() = %+v, %v", result, err)
+	}
+	run := img.run(t)
+	if fmt.Sprintf("%q", run.Args) != fmt.Sprintf("%q", []string{"/jazyk", "čeština"}) {
+		t.Errorf("parametry = %q", run.Args)
+	}
+	if !img.unmounted || !img.ranBeforeUnmount {
+		t.Error("obraz se má odpojit až po skončení instalátoru")
+	}
+}
+
+func TestRunFromImageRejectsBadAutorun(t *testing.T) {
+	tests := []struct {
+		name    string
+		autorun string
+		wantErr error
+	}{
+		{name: "chybí instalátor", autorun: "[AutoRun]\nopen=setup\\chybi.exe\n", wantErr: diskimage.ErrInstallerNotFound},
+		{name: "chybný zápis", autorun: "[AutoRun]\nopen \"setup\\Setup.exe\n", wantErr: diskimage.ErrInvalidAutorun},
+		{name: "jen ikona", autorun: "[AutoRun]\nicon=setup\\Setup.exe\n", wantErr: diskimage.ErrNoInstallerEntry},
+		{name: "cesta mimo obraz", autorun: "[AutoRun]\nopen=..\\setup\\Setup.exe\n", wantErr: diskimage.ErrUnsafeInstallerPath},
+		{name: "jiná jednotka", autorun: "[AutoRun]\nopen=C:\\Windows\\System32\\cmd.exe\n", wantErr: diskimage.ErrUnsafeInstallerPath},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			img := newFakeImage(t, tt.autorun)
+			app := config.AppConfig{Name: "Office", InstallerType: "iso"}
+			result, err := Run(context.Background(), app, writeImageFile(t), nil)
+
+			var imageErr *ImageError
+			if !errors.Is(err, tt.wantErr) || !errors.As(err, &imageErr) || imageErr.Stage != StageAutorun {
+				t.Fatalf("Run() = %v, očekáváno %v v kroku %q", err, tt.wantErr, StageAutorun)
+			}
+			if result.ImageValidated {
+				t.Error("neplatný obraz nesmí být označen jako ověřený")
+			}
+			if _, statErr := os.Stat(img.output); statErr == nil {
+				t.Error("instalátor se nesmí spustit")
+			}
+			if !img.unmounted {
+				t.Error("obraz zůstal připojený")
+			}
+		})
+	}
+}
+
+func TestRunFromImageRejectsCorruptedDownload(t *testing.T) {
+	img := newFakeImage(t, "[AutoRun]\nopen=setup\\Setup.exe\n")
+
+	app := config.AppConfig{
+		Name:          "Office",
+		InstallerType: "iso",
+		SHA256:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	}
+	if _, err := Run(context.Background(), app, writeImageFile(t), nil); err == nil {
+		t.Fatal("Run() neočekávaně přijal obraz s nesouhlasícím SHA-256")
+	}
+	if img.mounted {
+		t.Fatal("poškozený obraz se nesmí připojit")
+	}
+}
+
+func TestRunFromImageUnmountsAfterCancellation(t *testing.T) {
+	img := newFakeImage(t, "[AutoRun]\nopen=setup\\Setup.exe\n")
+	t.Setenv(helperSleepEnv, "30s")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	app := config.AppConfig{Name: "Office", InstallerType: "iso"}
+	started := time.Now()
+	if _, err := Run(ctx, app, writeImageFile(t), nil); err == nil {
+		t.Fatal("Run() po zrušení neohlásil chybu")
+	}
+	if time.Since(started) > 20*time.Second {
+		t.Fatal("zrušení neukončilo instalátor")
+	}
+	if !img.ranBeforeUnmount || !img.unmounted {
+		t.Fatalf("obraz se má po zrušení odpojit až po ukončení instalátoru (spuštěn=%t, odpojen=%t)", img.ranBeforeUnmount, img.unmounted)
 	}
 }
 

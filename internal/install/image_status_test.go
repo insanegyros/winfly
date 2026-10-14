@@ -1,6 +1,7 @@
 package install
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -112,6 +113,8 @@ func TestUserMessage(t *testing.T) {
 		{err: imageError(StageAutorun, diskimage.ErrNoAutorun), want: MessageNoAutorun},
 		{err: imageError(StageAutorun, diskimage.ErrInstallerNotFound), want: MessageInvalidAutorun},
 		{err: imageError(StageMount, diskimage.ErrUnsupportedFormat), want: MessageUnsupportedFormat},
+		{err: imageError(StageMount, diskimage.ErrAccessDenied), want: messageMountFailed},
+		{err: imageError(StageLock, context.Canceled), want: messageImageFailed},
 		{err: errors.New("aplikace X skončila s kódem 5"), want: "aplikace X skončila s kódem 5"},
 	}
 	for _, tt := range tests {

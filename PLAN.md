@@ -229,14 +229,44 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | 4 | Run the autorun installer from the mounted image through the existing EXE/MSI path; `runCommand` shared with plain installers; image kept mounted until the installer exits; tests incl. a real process launch (test binary as fake installer) | `internal/install/image.go` (new), `installer.go`, `image_test.go` (new), `installer_test.go` | ✅ |
 | 4b | Workflow integration: per-image lock against concurrent/duplicate use, `ImageError` with the failing stage, checks of batch, cancellation, `wait=false` and cleanup behaviour; tests | `internal/install/image_lock.go`, `image_error.go` (new), `image.go`, tests | ✅ |
 | 5a | Raise the default `maxDownloadBytes` from 2 GiB to 8 GiB for big ISOs | `internal/config/config.go`, `config.json`, `internal/download/downloader.go`, `README.md` | ✅ |
-| 5b | Download: accept image MIME types in the `Accept` header | `internal/download/downloader.go` | ⬜ |
+| 5b | ~~Download: accept image MIME types in the `Accept` header~~ Not needed: the header already ends with `*/*` | — | ✅ |
 | 6 | GUI: installer type and image state in the details panel, unverified/installable/invalid states, invalid images blocked, the three Czech messages; state kept outside the GUI; tests and Wine screenshots | `internal/install/image_status.go` (new), `image.go`, `installer.go`, `internal/ui/app.go`, `app_details.go`, `installation.go`, `main_window.go` | ✅ |
-| 7 | Docs: README table for `installerType`, the autorun.inf requirement; ISO example in `apps_example.json` | `README.md`, `apps_example.json` | ⬜ |
+| 7 | Docs: README table for `installerType`, the autorun.inf requirement; ISO example in `apps_example.json` | `README.md`, `apps_example.json` | ✅ |
 | 8 | Admin panel (postponed by Jandy, do later): allow `.iso`/`.img` uploads, `iso`/`img` types, `.iso`/`.img` file names | `admin_panel_web/ProvisionerJsonCRUD.php`, `api.php`, `ProvisionerChunkUpload.php`, `index.php`, `assets/admin.js` | ⬜ |
-| 9 | Build with `build.ps1`, test on real Windows with an ISO and an IMG, both EXE and MSI inside | — | ⬜ |
+| 9 | Build with `build.ps1`, test on real Windows with an ISO and an IMG, both EXE and MSI inside | — | ⬜ needs a real Windows 10/11 machine |
+| 10 | Final verification: tests for every scenario, gofmt/vet/build, user-friendly fallback texts for mount failures | `internal/install/image_test.go`, `image_status.go` | ✅ |
+
+## Verification (2026-10-14)
+
+Tools: `gofmt -l .` clean; `go vet` clean for linux and windows; `go build -trimpath -ldflags "-s -w -H=windowsgui" ./cmd/winfly` passes for windows/amd64, 386 and arm64. `go test` passes on Linux for `config`, `download`, `diskimage`; the Windows-only packages (`install`, `diskimage`, `systeminfo`, all others) pass as Windows test binaries under Wine.
+
+**Native mounting was NOT tested.** Wine's `virtdisk.dll` is a stub, so everything after "mount" ran against a fake mounter (a temp directory) or the fake OS layer of `diskimage`. Step 9 is still required.
+
+| # | Scenario | How it was tested | Result |
+|---|---|---|---|
+| 1 | EXE and MSI unchanged | unit tests (`commandFor`, exit codes, `wait`), real EXE run under Wine and in the Wine GUI batch | ✅ EXE; MSI only unit-tested (no real `msiexec` run) |
+| 2 | Valid ISO with autorun launches its installer | `TestRunFromImage`: fake mount + real process (test binary as installer), arguments, working dir, 3010 | ✅ mock |
+| 3 | IMG follows the same workflow | `TestRunFromImageIMGWithCzechPath` | ✅ mock |
+| 4 | Image without autorun rejected | `install` and `diskimage` tests; Czech text `MessageNoAutorun` | ✅ mock |
+| 5 | Missing, malformed, icon-only, unsafe (`..`, drive letter) targets rejected | `TestRunFromImageRejectsBadAutorun`, `autorun_test.go` table | ✅ mock |
+| 6 | Corrupted and unsupported images | wrong SHA-256 stops before mount; `format_test.go` (hard disk, raw CD, too small); Wine GUI shows `MessageUnsupportedFormat` | ✅ unit + Wine GUI |
+| 7 | Cancellation/failure leaves nothing mounted | `TestRunFromImageUnmountsAfterCancellation`, failing installer, autorun errors; `diskimage` tests for owned vs. foreign mounts | ✅ mock |
+| 8 | Batch continues after a failure | Wine GUI: ISO mount failed, broken IMG rejected, EXE then installed (`/mnt/project-files/iso-gui/batch-wine-*.png`) | ✅ Wine |
+| 9 | Spaces and Czech characters in paths | `Účetnictví a kancelář/Kancelář 2024.IMG`, args `/jazyk čeština` | ✅ mock |
+| 10 | DXDiag, Power Options, Domain/Workgroup intact | no diff in `systeminfo`, `systemdialogs`, `sysinfo_*`, `ui.go`; `main_window.go` one-line change only; buttons still visible in the Wine GUI | ✅ |
+
+Fixed during verification: a mount failure without a fixed message showed the raw Windows error in the dialog; it now shows "Obraz disku se nepodařilo připojit. Podrobnosti najdete v logu." (details stay in the log).
+
+Remaining platform limitations:
+
+- Real `virtdisk.dll` mounting, drive-letter lookup and `SeManageVolumePrivilege` are untested (step 9).
+- An autorun target that starts another process and exits at once loses the image when WinFly unmounts it; such installers need their own wait switch in `arguments`.
+- The image file stays locked with `FILE_SHARE_READ` while mounted; that `AttachVirtualDisk` still opens it must be confirmed on real Windows.
+- MSI inside an image runs through the same `msiexec /i` path, verified only by unit tests.
 
 ## Open questions
 
+- Defaults kept until Jandy decides: an image or MSI with `wait: false` makes the whole list invalid (same as MSI); `.bat`/`.cmd`/`.hta` autorun targets stay rejected; no "Znovu ověřit" button (invalid images are retried after restart or a changed list entry); raising the 900 s download timeout to 3600 s is recommended but not done.
 - Step 8 is postponed: until the panel accepts `.iso`/`.img` uploads and
   file names, ISO apps can only be added by editing `apps.json` by hand.
 - `network.timeoutSeconds` (default 900 s) limits the whole download, so an
