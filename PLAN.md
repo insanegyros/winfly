@@ -66,28 +66,45 @@ Example:
 
 ### Mounting
 
-A new file `internal/install/diskimage.go` mounts the image through
-`virtdisk.dll` (`OpenVirtualDisk` + `AttachVirtualDisk` with
-`VIRTUAL_STORAGE_TYPE_DEVICE_ISO`, read-only, without permanent lifetime), the
-same lazy-DLL style `filelock.go` already uses for `CreateFileW`. Because the
-attach is not permanent, Windows detaches the image when the handle closes,
-even if WinFly crashes. The drive letter is found from
-`GetVirtualDiskPhysicalPath` and the volume mount points.
+Package `internal/diskimage` (step 3, independent of the GUI and of
+`install`) mounts the image through `virtdisk.dll`: `OpenVirtualDisk` +
+`AttachVirtualDisk` with `VIRTUAL_STORAGE_TYPE_DEVICE_ISO`, read-only, without
+permanent lifetime. No PowerShell or other program is started, so there is no
+command string to inject into. `virtdisk.dll` is loaded from System32 only.
 
-Fallback if the API proves awkward: `powershell Mount-DiskImage -PassThru |
-Get-Volume`, the same `exec.Command` style `cache_security.go` uses for
-`icacls.exe`. Decide in step 3 after testing on real Windows.
+- `Mounter.Mount(ctx, path)` checks the file, mounts it and waits (up to 30 s,
+  cancellable through `ctx`) for Windows to create the volume. It returns an
+  `Image` with `MountPath` (`E:\`, or `\\?\Volume{…}\` when Windows assigns
+  no drive letter) and `Owned`.
+- `Image.Unmount()` detaches only an image WinFly mounted itself (`Owned`).
+  If the user or another app already had the image mounted, Mount reuses that
+  mount with `Owned=false` and Unmount only closes WinFly's handle. Because
+  the attach is not permanent, Windows also detaches WinFly's mount when the
+  handle closes, even if WinFly crashes.
+- The volume is found by matching the device number of the mounted CD-ROM
+  device (`GetVirtualDiskPhysicalPath`) against every volume
+  (`FindFirstVolumeW`, `IOCTL_STORAGE_GET_DEVICE_NUMBER`), then
+  `GetVolumePathNamesForVolumeNameW` for the drive letter.
+- `SeManageVolumePrivilege` is enabled before attaching.
+- Errors for callers to tell apart with `errors.Is`: `ErrImageNotFound`,
+  `ErrAccessDenied`, `ErrUnsupportedFormat`, `ErrNoVolume`, and the context
+  errors on cancellation.
+- The Windows calls sit behind a small `system` interface; tests use a fake,
+  so the mount, ownership, cancellation and error logic is tested on any OS.
 
-Note: `.img` works only when it holds an ISO 9660/UDF file system (the common
-case, which Windows Explorer also mounts). Raw partitioned disk images are out
-of scope and will fail with a clear Czech error.
+Formats (`format.go`): the file content decides, not the extension. Accepted
+are ISO 9660 (`CD001`) and UDF (`NSR02`/`NSR03`) images, which is what Windows
+can mount; this covers ISO-compatible `.img` files. Rejected with a specific
+Czech error: hard disk / USB / SD card images (boot signature `55AA`), raw
+2352-byte-sector CD images (CloneCD BIN/IMG), files that are too small and
+anything else without ISO 9660 or UDF.
 
 ### Execution
 
 `install.Run` stays the single entry point the UI calls. For `iso`/`img`:
 
 1. Lock and verify the image with the existing `lockAndVerifyInstaller`.
-2. Mount it read-only (`diskimage.go`), `defer` the unmount.
+2. Mount it read-only with `diskimage.Mounter`, `defer` the unmount.
 3. Resolve `setupPath` inside the mounted root, refusing paths that escape it.
 4. Reuse `commandFor` / the existing run-and-check-exit-code code for the inner
    EXE or MSI, with `cmd.Dir` set to the setup program's folder.
@@ -111,7 +128,7 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | 1 | Inspect the pipeline and write this plan | `PLAN.md` | ✅ |
 | 2a | Config: `iso`/`img` installer types and constants, case-insensitive `.iso`/`.img` detection for `auto`, `wait: true` required for images, descriptive errors for unsupported types, one shared `ResolveInstallerType` used by `config` and `install`; `install.Run` stops images with a clear "not supported yet" error before touching the file; tests incl. unchanged EXE/MSI rules | `internal/config/installer_type.go` (new), `installer_type_test.go` (new), `config.go`, `internal/install/installer.go`, `installer_test.go` | ✅ |
 | 2b | Config: `setupPath` field and its validation (safe relative path, EXE/MSI extension), added together with step 4 | `internal/config/config.go`, `internal/config/config_test.go` | ⬜ |
-| 3 | Mount and unmount a disk image via `virtdisk.dll`, find its drive letter; test on real Windows 10/11 | `internal/install/diskimage.go` (new) | ⬜ |
+| 3 | Reusable mounting component: format check, mount/unmount via `virtdisk.dll`, volume and drive letter lookup, ownership, cancellation, descriptive errors; tests with a fake OS layer. Done and tested on Linux and under Wine; real mounting still needs a test on real Windows 10/11 (step 9) | `internal/diskimage/` (new) | ✅ |
 | 4 | Run the setup program from the mounted image; split `Run` into small helpers | `internal/install/installer.go`, `internal/install/installer_test.go` | ⬜ |
 | 5a | Raise the default `maxDownloadBytes` from 2 GiB to 8 GiB for big ISOs | `internal/config/config.go`, `config.json`, `internal/download/downloader.go`, `README.md` | ✅ |
 | 5b | Download: accept image MIME types in the `Accept` header | `internal/download/downloader.go` | ⬜ |
@@ -129,7 +146,7 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
   8 GiB image needs roughly 9.5 MB/s to finish in time.
 - `lockAndVerifyInstaller` opens the image with `FILE_SHARE_READ` only;
   `AttachVirtualDisk` must still be able to open it read-only. Verify in step 3.
-- Until steps 3 and 4 land, an ISO/IMG app is downloaded and SHA-256 checked
+- Until step 4 lands, an ISO/IMG app is downloaded and SHA-256 checked
   as usual, then `install.Run` stops it with "instalace z obrazu disku ISO
   zatím není podporována". `auto` with an unknown extension (e.g. the panel's
   `app.bin`) still loads, exactly as before, and fails only when installed.
