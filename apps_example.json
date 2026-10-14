@@ -223,6 +223,23 @@
                 1641,
                 3010
             ]
+        },
+        {
+            "id": 16,
+            "name": "Office 2024 (ISO)",
+            "description": "Obraz disku s autorun.inf, který spouští setup.exe",
+            "enabled": true,
+            "url": "https://example.com/winfly/office_2024.iso",
+            "sha256": "",
+            "fileName": "office_2024.iso",
+            "installerType": "iso",
+            "arguments": [],
+            "wait": true,
+            "successExitCodes": [
+                0,
+                1641,
+                3010
+            ]
         }
     ]
 }

@@ -66,7 +66,7 @@ func New(network config.NetworkConfig, cacheDirectory string) (*Manager, error) 
 	}
 	maxBytes := network.MaxDownloadBytes
 	if maxBytes <= 0 {
-		maxBytes = 2 * 1024 * 1024 * 1024
+		maxBytes = config.DefaultMaxDownloadBytes
 	}
 
 	m := &Manager{

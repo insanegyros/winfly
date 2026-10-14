@@ -44,7 +44,7 @@ Soubor `internal/config/config.json` se při sestavení vloží do `WinFly.exe`.
     "configTimeoutSeconds": 30,
     "maxConfigBytes": 1048576,
     "timeoutSeconds": 900,
-    "maxDownloadBytes": 2147483648,
+    "maxDownloadBytes": 8589934592,
     "allowHttp": false
   }
 }
@@ -60,7 +60,7 @@ Soubor `internal/config/config.json` se při sestavení vloží do `WinFly.exe`.
 | `network.configTimeoutSeconds` | Celkový časový limit pro načtení vzdálené konfigurace. Výchozí hodnota je 30 sekund. |
 | `network.maxConfigBytes` | Nejvyšší velikost vzdálené konfigurace. Výchozí hodnota je 1 MiB. |
 | `network.timeoutSeconds` | Celkový časový limit pro stažení jednoho instalátoru. Výchozí hodnota je 900 sekund. |
-| `network.maxDownloadBytes` | Nejvyšší velikost jednoho instalátoru. Výchozí hodnota je 2 GiB. |
+| `network.maxDownloadBytes` | Nejvyšší velikost jednoho instalátoru. Výchozí hodnota je 8 GiB. |
 | `network.allowHttp` | Povolí nešifrované HTTP pro konfiguraci i instalátory. Výchozí hodnota `false` vyžaduje HTTPS. |
 
 Schéma této konfigurace je v `docs/config.schema.json`.
@@ -102,9 +102,9 @@ Odpověď musí být jeden kořenový objekt s povinným polem `apps`. Prázdné
 | `url` | Absolutní URL instalátoru. HTTPS je povinné, pokud vložená konfigurace nepovolí HTTP. |
 | `sha256` | Volitelný otisk. Přesně 64 hexadecimálních znaků zapne ověřování; chybějící nebo neplatná hodnota zobrazí křížek a ověřování vypne. |
 | `fileName` | Bezpečný základní název souboru Windows bez cesty, datového proudu nebo rezervovaného názvu. |
-| `installerType` | `exe`, `msi` nebo `auto` pro určení podle přípony `fileName`. |
+| `installerType` | `exe`, `msi`, `iso`, `img` nebo `auto` pro určení podle přípony `fileName` (velikost písmen nerozhoduje). |
 | `arguments` | Pole parametrů předaných instalátoru přímo, bez `cmd.exe` nebo PowerShellu. |
-| `wait` | Čekání na ukončení instalátoru a kontrola návratového kódu. Výchozí hodnota je `true`; MSI vyžaduje `true`. |
+| `wait` | Čekání na ukončení instalátoru a kontrola návratového kódu. Výchozí hodnota je `true`; MSI, ISO a IMG vyžadují `true`. |
 | `successExitCodes` | Přijímané návratové kódy. Výchozí hodnoty jsou `0`, `1641` a `3010`. |
 
 Pokud je jediná povolená položka neplatná, je neplatná celá vzdálená konfigurace. Aplikace poté zobrazí chybu a nepovolí instalaci žádné položky.
@@ -125,6 +125,20 @@ Při platném otisku WinFly:
 4. bezprostředně před spuštěním otevře přesně tento soubor bez sdílení pro zápis nebo odstranění a znovu jej ověří.
 
 Při chybějícím nebo neplatném otisku instalace zůstává dostupná, ale přehled zobrazuje křížek, protokol zapisuje upozornění, neověřený soubor z mezipaměti se znovu nepoužije a nelze tvrdit kryptografickou integritu instalátoru.
+
+## Instalace z obrazu disku ISO/IMG
+
+Položka s `installerType` `iso` nebo `img` (nebo `auto` a příponou `.iso`/`.img`) se stáhne a ověří stejně jako EXE a MSI. Poté WinFly:
+
+1. ověří podle obsahu, že jde o obraz ISO 9660 nebo UDF (obraz pevného disku nebo nepodporovaný formát odmítne);
+2. připojí obraz pouze pro čtení nativně přes `virtdisk.dll`, bez PowerShellu a programů třetích stran;
+3. v kořeni obrazu vyhledá `autorun.inf` a v sekci `[AutoRun]` položku `open=` nebo `shellexecute=`; cílem musí být existující soubor `.exe` nebo `.msi` uvnitř obrazu (bez `..` a písmen jednotek), jinak obraz odmítne; `setup.exe` se nehádá;
+4. spustí instalátor stejně jako samostatný EXE nebo MSI: nejprve parametry z `autorun.inf`, za nimi `arguments` z konfigurace, pracovním adresářem je kořen obrazu; žádné parametry pro tichou instalaci se nepřidávají;
+5. počká na ukončení instalátoru a obraz odpojí, i po chybě nebo zrušení. Obraz připojený dříve uživatelem zůstane připojený.
+
+V přehledu aplikace řádek „Typ instalátoru“ ukazuje stav obrazu: neověřeno, ověřeno, nebo neplatný. Neplatný obraz (chybí `autorun.inf`, neplatný `autorun.inf`, nepodporovaný formát) se do restartu WinFly nebo do změny položky v seznamu znovu nestahuje ani nespouští.
+
+Omezení: WinFly čeká jen na proces spuštěný z `autorun.inf`. Pokud ten spustí jiný instalátor a hned skončí, obraz se odpojí dříve; pro takový instalátor uveďte v `arguments` jeho vlastní parametr pro čekání. Správa aplikací ve webovém panelu zatím soubory `.iso`/`.img` nepodporuje.
 
 ## Stahování a spuštění instalátorů
 

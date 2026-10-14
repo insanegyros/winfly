@@ -24,6 +24,20 @@ func TestCommandForMSI(t *testing.T) {
 	}
 }
 
+func TestCommandForEXE(t *testing.T) {
+	installerPath := filepath.Join("tmp", "Setup.EXE")
+	program, args, err := commandFor(config.AppConfig{InstallerType: "auto", Arguments: []string{"/S"}}, installerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if program != installerPath {
+		t.Fatalf("program = %q", program)
+	}
+	if len(args) != 1 || args[0] != "/S" {
+		t.Fatalf("parametry = %#v", args)
+	}
+}
+
 func TestContainsExitCode(t *testing.T) {
 	if !containsExitCode([]int{0, 3010}, 3010) {
 		t.Fatal("kód 3010 měl být přijat")

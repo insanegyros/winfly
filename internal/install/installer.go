@@ -18,17 +18,23 @@ type Result struct {
 	ExitCode        int
 	StartedOnly     bool
 	RestartRequired bool
+	// ImageValidated je true, pokud obraz disku šel připojit a jeho
+	// autorun.inf prošel ověřením, i když instalátor pak skončil chybou.
+	ImageValidated bool
 }
 
 func Run(ctx context.Context, app config.AppConfig, installerPath string, log Logger) (Result, error) {
 	if log == nil {
 		log = func(string, ...any) {}
 	}
-	kind, err := installerKind(app, installerPath)
+	kind, err := config.ResolveInstallerType(app.InstallerType, installerPath)
 	if err != nil {
 		return Result{}, err
 	}
-	if kind == "msi" && !app.ShouldWait() {
+	if config.IsDiskImageType(kind) && !app.ShouldWait() {
+		return Result{}, fmt.Errorf("instalace z obrazu disku %s vyžaduje wait=true, aby obraz zůstal připojený až do konce instalace", strings.ToUpper(kind))
+	}
+	if kind == config.InstallerTypeMSI && !app.ShouldWait() {
 		return Result{}, errors.New("instalátory MSI vyžadují wait=true, aby balíček zůstal uzamčený až do ukončení služby Windows Installer")
 	}
 
@@ -49,19 +55,40 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 		log("Upozornění: aplikace %s se spouští bez ověření SHA-256", app.Name)
 	}
 
+	// Obraz zůstává uzamčený po celou dobu připojení i instalace.
+	if config.IsDiskImageType(kind) {
+		return runFromImage(ctx, app, installerPath, log)
+	}
+
 	program, args, err := commandFor(app, installerPath)
 	if err != nil {
 		return Result{}, err
 	}
 	log("Spouští se instalátor aplikace %s", app.Name)
+	return runCommand(ctx, app, launch{
+		program: program,
+		args:    args,
+		dir:     filepath.Dir(installerPath),
+	}, log)
+}
 
+// launch popisuje jedno spuštění instalátoru.
+type launch struct {
+	program string
+	args    []string // každý prvek je jeden parametr; hranice se zachovají
+	dir     string   // pracovní adresář
+}
+
+// runCommand spustí instalátor, a pokud app.ShouldWait(), počká na jeho
+// ukončení a ověří návratový kód podle app.SuccessExitCodes.
+func runCommand(ctx context.Context, app config.AppConfig, l launch, log Logger) (Result, error) {
 	var cmd *exec.Cmd
 	if app.ShouldWait() {
-		cmd = exec.CommandContext(ctx, program, args...)
+		cmd = exec.CommandContext(ctx, l.program, l.args...)
 	} else {
-		cmd = exec.Command(program, args...)
+		cmd = exec.Command(l.program, l.args...)
 	}
-	cmd.Dir = filepath.Dir(installerPath)
+	cmd.Dir = l.dir
 
 	if !app.ShouldWait() {
 		if err := cmd.Start(); err != nil {
@@ -73,7 +100,7 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 		return Result{StartedOnly: true}, nil
 	}
 
-	err = cmd.Run()
+	err := cmd.Run()
 	exitCode := 0
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -99,15 +126,15 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 }
 
 func commandFor(app config.AppConfig, installerPath string) (string, []string, error) {
-	kind, err := installerKind(app, installerPath)
+	kind, err := config.ResolveInstallerType(app.InstallerType, installerPath)
 	if err != nil {
 		return "", nil, err
 	}
 
 	switch kind {
-	case "exe":
+	case config.InstallerTypeEXE:
 		return installerPath, append([]string(nil), app.Arguments...), nil
-	case "msi":
+	case config.InstallerTypeMSI:
 		msiexec := "msiexec.exe"
 		if systemRoot := os.Getenv("SystemRoot"); systemRoot != "" {
 			msiexec = filepath.Join(systemRoot, "System32", "msiexec.exe")
@@ -118,24 +145,6 @@ func commandFor(app config.AppConfig, installerPath string) (string, []string, e
 	default:
 		return "", nil, fmt.Errorf("nepodporovaný typ instalátoru %q", kind)
 	}
-}
-
-func installerKind(app config.AppConfig, installerPath string) (string, error) {
-	kind := strings.ToLower(strings.TrimSpace(app.InstallerType))
-	if kind == "" || kind == "auto" {
-		switch strings.ToLower(filepath.Ext(installerPath)) {
-		case ".msi":
-			kind = "msi"
-		case ".exe":
-			kind = "exe"
-		default:
-			return "", fmt.Errorf("typ instalátoru nelze určit z názvu %q", installerPath)
-		}
-	}
-	if kind != "exe" && kind != "msi" {
-		return "", fmt.Errorf("nepodporovaný typ instalátoru %q", kind)
-	}
-	return kind, nil
 }
 
 func containsExitCode(codes []int, value int) bool {

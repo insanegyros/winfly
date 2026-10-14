@@ -60,8 +60,9 @@ func (a *app) installApps(ctx context.Context, apps []config.AppConfig) error {
 	for _, app := range apps {
 		restart, err := a.installApp(ctx, app)
 		if err != nil {
+			// The log gets the technical details, the dialog a readable message.
 			a.logf("%s: operace selhala: %v", app.Name, err)
-			failures = append(failures, fmt.Errorf("%s: %w", app.Name, err))
+			failures = append(failures, fmt.Errorf("%s: %s", app.Name, install.UserMessage(err)))
 			continue
 		}
 		restartRequired = restartRequired || restart
@@ -73,13 +74,18 @@ func (a *app) installApps(ctx context.Context, apps []config.AppConfig) error {
 	return errors.Join(failures...)
 }
 
-// installApp downloads one installer and runs it.
+// installApp downloads one installer and runs it. A disk image that already
+// failed validation is skipped before it is downloaded again.
 func (a *app) installApp(ctx context.Context, app config.AppConfig) (restartRequired bool, err error) {
+	if err := a.imageStatuses.CheckAllowed(app); err != nil {
+		return false, err
+	}
 	installerPath, err := a.downloader.Fetch(ctx, app, a.logf)
 	if err != nil {
 		return false, err
 	}
 	result, err := install.Run(ctx, app, installerPath, a.logf)
+	a.imageStatuses.Record(app, result, err)
 	if err != nil {
 		return false, err
 	}
@@ -93,6 +99,7 @@ func (a *app) finishInstallation() {
 		case result := <-a.installResults:
 			a.installing.Store(false)
 			a.main.setInstallControlsEnabled(true)
+			a.main.showFocusedAppDetails() // image states may have changed
 			if result.err != nil {
 				a.logf("Selhání: %s: %v", installTitle, result.err)
 				win32.ShowError(a.main.hwnd, installTitle, result.err.Error())

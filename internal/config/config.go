@@ -49,6 +49,10 @@ type AppConfig struct {
 	SuccessExitCodes []int    `json:"successExitCodes"`
 }
 
+// DefaultMaxDownloadBytes is the size limit of one downloaded installer when
+// network.maxDownloadBytes is not set. 8 GiB fits large ISO images.
+const DefaultMaxDownloadBytes int64 = 8 * 1024 * 1024 * 1024
+
 type remoteDocument struct {
 	Apps []AppConfig `json:"apps"`
 }
@@ -160,7 +164,7 @@ func applyConfigDefaults(cfg *Config) {
 		cfg.Network.TimeoutSeconds = 900
 	}
 	if cfg.Network.MaxDownloadBytes <= 0 {
-		cfg.Network.MaxDownloadBytes = 2 * 1024 * 1024 * 1024
+		cfg.Network.MaxDownloadBytes = DefaultMaxDownloadBytes
 	}
 }
 
@@ -174,7 +178,7 @@ func applyAppDefaults(apps []AppConfig) {
 		app.FileName = strings.TrimSpace(app.FileName)
 		app.InstallerType = strings.ToLower(strings.TrimSpace(app.InstallerType))
 		if app.InstallerType == "" {
-			app.InstallerType = "auto"
+			app.InstallerType = InstallerTypeAuto
 		}
 		if app.Wait == nil {
 			value := true
@@ -217,15 +221,26 @@ func validateApps(apps []AppConfig, allowHTTP bool) error {
 		if !IsSafeInstallerFileName(app.FileName) {
 			return fmt.Errorf("pole %s.fileName není bezpečný základní název souboru systému Windows", path)
 		}
-		switch app.InstallerType {
-		case "auto", "exe", "msi":
-		default:
-			return fmt.Errorf("pole %s.installerType musí mít hodnotu auto, exe nebo msi", path)
+		if err := validateInstallerType(app, path); err != nil {
+			return err
 		}
-		isMSI := app.InstallerType == "msi" || (app.InstallerType == "auto" && strings.HasSuffix(strings.ToLower(app.FileName), ".msi"))
-		if isMSI && !app.ShouldWait() {
-			return fmt.Errorf("pole %s.wait musí mít u instalátoru MSI hodnotu true", path)
-		}
+	}
+	return nil
+}
+
+// validateInstallerType ověří pole installerType a pravidlo pro wait.
+func validateInstallerType(app AppConfig, path string) error {
+	if !isKnownInstallerType(app.InstallerType) {
+		return fmt.Errorf("pole %s.installerType musí mít hodnotu auto, exe, msi, iso nebo img", path)
+	}
+	kind, err := ResolveInstallerType(app.InstallerType, app.FileName)
+	if err != nil {
+		// Typ auto s neznámou příponou se záměrně neodmítá, aby starší seznamy
+		// zůstaly načitatelné; chyba se ohlásí až při instalaci této aplikace.
+		return nil
+	}
+	if requiresWait(kind) && !app.ShouldWait() {
+		return fmt.Errorf("pole %s.wait musí mít u instalátoru %s hodnotu true", path, strings.ToUpper(kind))
 	}
 	return nil
 }

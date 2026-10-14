@@ -5,6 +5,7 @@ import (
 
 	"jandy.cz/winfly/internal/config"
 	"jandy.cz/winfly/internal/download"
+	"jandy.cz/winfly/internal/install"
 	"jandy.cz/winfly/internal/systeminfo"
 	"jandy.cz/winfly/internal/ui/win32"
 )
@@ -20,6 +21,9 @@ type app struct {
 	apps       []config.AppConfig // the enabled apps, in the order of the list
 	appListErr error              // why the app list could not be loaded, if it failed
 	downloader *download.Manager
+	// imageStatuses remembers which ISO/IMG images passed or failed
+	// validation during this run of the program.
+	imageStatuses *install.ImageStatuses
 
 	font  win32.Font
 	scale scaler
@@ -42,6 +46,7 @@ func newApp(cfg *config.Config, appListErr error, downloader *download.Manager) 
 		apps:              cfg.EnabledApps(),
 		appListErr:        appListErr,
 		downloader:        downloader,
+		imageStatuses:     install.NewImageStatuses(),
 		font:              win32.CreateFont("Segoe UI", 9, dpi),
 		scale:             scaler{dpi: dpi},
 		pendingLogLines:   make(chan string, 256),
