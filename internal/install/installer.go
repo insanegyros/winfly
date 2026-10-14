@@ -28,8 +28,8 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 	if err != nil {
 		return Result{}, err
 	}
-	if config.IsDiskImageType(kind) {
-		return Result{}, fmt.Errorf("instalace z obrazu disku %s zatím není podporována", strings.ToUpper(kind))
+	if config.IsDiskImageType(kind) && !app.ShouldWait() {
+		return Result{}, fmt.Errorf("instalace z obrazu disku %s vyžaduje wait=true, aby obraz zůstal připojený až do konce instalace", strings.ToUpper(kind))
 	}
 	if kind == config.InstallerTypeMSI && !app.ShouldWait() {
 		return Result{}, errors.New("instalátory MSI vyžadují wait=true, aby balíček zůstal uzamčený až do ukončení služby Windows Installer")
@@ -52,19 +52,40 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 		log("Upozornění: aplikace %s se spouští bez ověření SHA-256", app.Name)
 	}
 
+	// Obraz zůstává uzamčený po celou dobu připojení i instalace.
+	if config.IsDiskImageType(kind) {
+		return runFromImage(ctx, app, installerPath, log)
+	}
+
 	program, args, err := commandFor(app, installerPath)
 	if err != nil {
 		return Result{}, err
 	}
 	log("Spouští se instalátor aplikace %s", app.Name)
+	return runCommand(ctx, app, launch{
+		program: program,
+		args:    args,
+		dir:     filepath.Dir(installerPath),
+	}, log)
+}
 
+// launch popisuje jedno spuštění instalátoru.
+type launch struct {
+	program string
+	args    []string // každý prvek je jeden parametr; hranice se zachovají
+	dir     string   // pracovní adresář
+}
+
+// runCommand spustí instalátor, a pokud app.ShouldWait(), počká na jeho
+// ukončení a ověří návratový kód podle app.SuccessExitCodes.
+func runCommand(ctx context.Context, app config.AppConfig, l launch, log Logger) (Result, error) {
 	var cmd *exec.Cmd
 	if app.ShouldWait() {
-		cmd = exec.CommandContext(ctx, program, args...)
+		cmd = exec.CommandContext(ctx, l.program, l.args...)
 	} else {
-		cmd = exec.Command(program, args...)
+		cmd = exec.Command(l.program, l.args...)
 	}
-	cmd.Dir = filepath.Dir(installerPath)
+	cmd.Dir = l.dir
 
 	if !app.ShouldWait() {
 		if err := cmd.Start(); err != nil {
@@ -76,7 +97,7 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 		return Result{StartedOnly: true}, nil
 	}
 
-	err = cmd.Run()
+	err := cmd.Run()
 	exitCode := 0
 	if err != nil {
 		var exitErr *exec.ExitError

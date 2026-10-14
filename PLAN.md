@@ -124,23 +124,40 @@ never executes anything.
 
 ### Execution
 
-`install.Run` stays the single entry point the UI calls. For `iso`/`img`:
+`install.Run` stays the single entry point the UI calls; there is no
+separate installer engine. For `iso`/`img` (`internal/install/image.go`):
 
-1. Lock and verify the image with the existing `lockAndVerifyInstaller`.
-2. Mount it read-only with `diskimage.Mounter`, `defer` the unmount.
-3. Validate the installer with `diskimage.ReadAutorun` on the mount path.
-4. Reuse `commandFor` / the existing run-and-check-exit-code code for the inner
-   EXE or MSI, with `cmd.Dir` set to the setup program's folder.
-5. Log mount, setup start, result and unmount through the existing `Logger`.
+1. Check `wait: true`, then lock and verify the image with the existing
+   `lockAndVerifyInstaller`. The lock is held until everything below ends.
+2. Mount it read-only with `diskimage.Mounter`. An image another app already
+   mounted is reused and left mounted.
+3. Validate the installer with `diskimage.ReadAutorun` on the mount root.
+4. `imageLaunch` builds the command with the existing `commandFor`: an EXE
+   runs directly, an MSI through `%SystemRoot%\System32\msiexec.exe /i`.
+   Arguments are the `autorun.inf` arguments followed by the app's
+   `arguments`, each kept as a separate argument (Go quotes them for
+   Windows). No silent switches are ever added; unattended installs work
+   only when `autorun.inf` or the app list provides the switches.
+5. The working directory is the image root, as with Windows AutoPlay, since
+   relative paths in `autorun.inf` are relative to the root.
+6. The shared `runCommand` (split out of `Run`, used by plain EXE/MSI too)
+   waits for the installer and checks `successExitCodes`; 1641/3010 still
+   mean restart.
+7. The image is unmounted in a `defer`, so only after the installer process
+   has exited, also on failure or cancellation. An unmount failure is logged
+   as a warning and does not fail an otherwise successful install.
+8. Mount, mount path, the autorun entry, start, result and unmount are logged
+   through the existing `Logger`, so they appear in the log window.
 
-To keep `Run` short, the current body is split into small helpers
-(`runCommand`, `checkExitCode`) that both the plain and the image path call.
+Limit: WinFly waits for the process it started. An installer that starts a
+child process and exits at once would see the image unmounted under it;
+such installers need their own "wait" switch in `arguments`.
 
 ### GUI
 
-No layout changes. The existing "Přehled aplikace" panel may show the setup
-path for images in the existing "Parametry instalátoru" text, only if it is
-needed for clarity. Progress already reaches the log window through `logf`.
+No changes. `ui/installation.go` already calls `install.Run`, so ISO/IMG
+apps install through the same button, and their progress reaches the log
+window through `logf`.
 
 ## Steps and progress
 
@@ -153,10 +170,10 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | 2b | ~~Config: `setupPath` field~~ Dropped: replaced by autorun validation (step 3b) | — | ✅ |
 | 3 | Reusable mounting component: format check, mount/unmount via `virtdisk.dll`, volume and drive letter lookup, ownership, cancellation, descriptive errors; tests with a fake OS layer. Done and tested on Linux and under Wine; real mounting still needs a test on real Windows 10/11 (step 9) | `internal/diskimage/` (new) | ✅ |
 | 3b | Autorun-based installer validation: find `autorun.inf`, parse `[AutoRun]` `open`/`shellexecute`, split quoted command lines, reject unsafe paths, icon-only and malformed files, check the target exists; table-driven tests | `internal/diskimage/autorun.go`, `cmdline.go` (new), tests | ✅ |
-| 4 | Run the setup program from the mounted image; split `Run` into small helpers | `internal/install/installer.go`, `internal/install/installer_test.go` | ⬜ |
+| 4 | Run the autorun installer from the mounted image through the existing EXE/MSI path; `runCommand` shared with plain installers; image kept mounted until the installer exits; tests incl. a real process launch (test binary as fake installer) | `internal/install/image.go` (new), `installer.go`, `image_test.go` (new), `installer_test.go` | ✅ |
 | 5a | Raise the default `maxDownloadBytes` from 2 GiB to 8 GiB for big ISOs | `internal/config/config.go`, `config.json`, `internal/download/downloader.go`, `README.md` | ✅ |
 | 5b | Download: accept image MIME types in the `Accept` header | `internal/download/downloader.go` | ⬜ |
-| 6 | GUI: no change planned; progress goes to the log window | `internal/ui/app_details.go` | ⬜ |
+| 6 | GUI: nothing needed; ISO/IMG apps use the existing install flow and log window | — | ✅ |
 | 7 | Docs: README table for `installerType`, the autorun.inf requirement; ISO example in `apps_example.json` | `README.md`, `apps_example.json` | ⬜ |
 | 8 | Admin panel (postponed by Jandy, do later): allow `.iso`/`.img` uploads, `iso`/`img` types, `.iso`/`.img` file names | `admin_panel_web/ProvisionerJsonCRUD.php`, `api.php`, `ProvisionerChunkUpload.php`, `index.php`, `assets/admin.js` | ⬜ |
 | 9 | Build with `build.ps1`, test on real Windows with an ISO and an IMG, both EXE and MSI inside | — | ⬜ |
@@ -168,8 +185,6 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 - `network.timeoutSeconds` (default 900 s) limits the whole download, so an
   8 GiB image needs roughly 9.5 MB/s to finish in time.
 - `lockAndVerifyInstaller` opens the image with `FILE_SHARE_READ` only;
-  `AttachVirtualDisk` must still be able to open it read-only. Verify in step 4 on real Windows.
-- Until step 4 lands, an ISO/IMG app is downloaded and SHA-256 checked
-  as usual, then `install.Run` stops it with "instalace z obrazu disku ISO
-  zatím není podporována". `auto` with an unknown extension (e.g. the panel's
-  `app.bin`) still loads, exactly as before, and fails only when installed.
+  `AttachVirtualDisk` must still be able to open it read-only. Verify in step 9 on real Windows.
+- `auto` with an unknown extension (e.g. the panel's `app.bin`) still loads,
+  exactly as before, and fails only when installed.

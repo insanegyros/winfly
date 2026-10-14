@@ -1,7 +1,6 @@
 package install
 
 import (
-	"context"
 	"crypto/sha256"
 	"fmt"
 	"os"
@@ -36,19 +35,6 @@ func TestCommandForEXE(t *testing.T) {
 	}
 	if len(args) != 1 || args[0] != "/S" {
 		t.Fatalf("parametry = %#v", args)
-	}
-}
-
-func TestRunRejectsDiskImagesUntilMountingExists(t *testing.T) {
-	for _, app := range []config.AppConfig{
-		{Name: "ISO", InstallerType: "auto"},
-		{Name: "IMG", InstallerType: "img"},
-	} {
-		installerPath := filepath.Join(t.TempDir(), "office."+strings.ToLower(app.Name))
-		_, err := Run(context.Background(), app, installerPath, nil)
-		if err == nil || !strings.Contains(err.Error(), "obrazu disku") {
-			t.Fatalf("%s: Run() vrátil %v, očekávána chyba o obrazu disku", app.Name, err)
-		}
 	}
 }
 
