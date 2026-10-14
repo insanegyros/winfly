@@ -10,6 +10,8 @@
 //
 //   - diskimage.go        Mounter, Image a pravidla vlastnictví připojení
 //   - format.go           rozpoznání obrazu ISO 9660 nebo UDF podle obsahu
+//   - autorun.go          ověření instalátoru podle autorun.inf (nic nespouští)
+//   - cmdline.go          rozdělení příkazu z autorun.inf na program a parametry
 //   - system_windows.go   napojení na Windows: připojení, odpojení, svazek
 //   - virtdisk_windows.go volání knihovny virtdisk.dll
 //   - volume_windows.go   vyhledání svazku a písmena jednotky
