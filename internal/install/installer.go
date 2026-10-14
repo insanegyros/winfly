@@ -24,11 +24,14 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 	if log == nil {
 		log = func(string, ...any) {}
 	}
-	kind, err := installerKind(app, installerPath)
+	kind, err := config.ResolveInstallerType(app.InstallerType, installerPath)
 	if err != nil {
 		return Result{}, err
 	}
-	if kind == "msi" && !app.ShouldWait() {
+	if config.IsDiskImageType(kind) {
+		return Result{}, fmt.Errorf("instalace z obrazu disku %s zatím není podporována", strings.ToUpper(kind))
+	}
+	if kind == config.InstallerTypeMSI && !app.ShouldWait() {
 		return Result{}, errors.New("instalátory MSI vyžadují wait=true, aby balíček zůstal uzamčený až do ukončení služby Windows Installer")
 	}
 
@@ -99,15 +102,15 @@ func Run(ctx context.Context, app config.AppConfig, installerPath string, log Lo
 }
 
 func commandFor(app config.AppConfig, installerPath string) (string, []string, error) {
-	kind, err := installerKind(app, installerPath)
+	kind, err := config.ResolveInstallerType(app.InstallerType, installerPath)
 	if err != nil {
 		return "", nil, err
 	}
 
 	switch kind {
-	case "exe":
+	case config.InstallerTypeEXE:
 		return installerPath, append([]string(nil), app.Arguments...), nil
-	case "msi":
+	case config.InstallerTypeMSI:
 		msiexec := "msiexec.exe"
 		if systemRoot := os.Getenv("SystemRoot"); systemRoot != "" {
 			msiexec = filepath.Join(systemRoot, "System32", "msiexec.exe")
@@ -118,24 +121,6 @@ func commandFor(app config.AppConfig, installerPath string) (string, []string, e
 	default:
 		return "", nil, fmt.Errorf("nepodporovaný typ instalátoru %q", kind)
 	}
-}
-
-func installerKind(app config.AppConfig, installerPath string) (string, error) {
-	kind := strings.ToLower(strings.TrimSpace(app.InstallerType))
-	if kind == "" || kind == "auto" {
-		switch strings.ToLower(filepath.Ext(installerPath)) {
-		case ".msi":
-			kind = "msi"
-		case ".exe":
-			kind = "exe"
-		default:
-			return "", fmt.Errorf("typ instalátoru nelze určit z názvu %q", installerPath)
-		}
-	}
-	if kind != "exe" && kind != "msi" {
-		return "", fmt.Errorf("nepodporovaný typ instalátoru %q", kind)
-	}
-	return kind, nil
 }
 
 func containsExitCode(codes []int, value int) bool {

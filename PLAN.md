@@ -25,9 +25,11 @@ texts in Czech.
 | Logging | `install.Logger`, `download.Logger` | Both are `func(format string, args ...any)`; the UI passes `app.logf`, which writes to the log window. |
 | GUI integration | `internal/ui/installation.go` | `installApp` calls `downloader.Fetch` then `install.Run` on a background goroutine; the UI only sees the joined error and the restart flag. |
 
-The two package-level points that decide "what kind of file is this" are
+Before step 2a, two places decided "what kind of file is this":
 `installerKind` in `install` and the `installerType` switch in
-`config.validateApps`. ISO/IMG support plugs in there.
+`config.validateApps`. Step 2a replaced both with one shared function,
+`config.ResolveInstallerType` (`internal/config/installer_type.go`), which
+also knows `iso` and `img`.
 
 ## Design
 
@@ -107,9 +109,10 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | # | Step | Files | Status |
 |---|---|---|---|
 | 1 | Inspect the pipeline and write this plan | `PLAN.md` | ✅ |
-| 2 | Config: `iso`/`img` types, `setupPath` field, validation (safe relative path, EXE/MSI extension, `wait` required), tests | `internal/config/config.go`, `internal/config/config_test.go` | ⬜ |
+| 2a | Config: `iso`/`img` installer types and constants, case-insensitive `.iso`/`.img` detection for `auto`, `wait: true` required for images, descriptive errors for unsupported types, one shared `ResolveInstallerType` used by `config` and `install`; `install.Run` stops images with a clear "not supported yet" error before touching the file; tests incl. unchanged EXE/MSI rules | `internal/config/installer_type.go` (new), `installer_type_test.go` (new), `config.go`, `internal/install/installer.go`, `installer_test.go` | ✅ |
+| 2b | Config: `setupPath` field and its validation (safe relative path, EXE/MSI extension), added together with step 4 | `internal/config/config.go`, `internal/config/config_test.go` | ⬜ |
 | 3 | Mount and unmount a disk image via `virtdisk.dll`, find its drive letter; test on real Windows 10/11 | `internal/install/diskimage.go` (new) | ⬜ |
-| 4 | Detect image kinds and run the setup program from the mounted image; split `Run` into small helpers | `internal/install/installer.go`, `internal/install/installer_test.go` | ⬜ |
+| 4 | Run the setup program from the mounted image; split `Run` into small helpers | `internal/install/installer.go`, `internal/install/installer_test.go` | ⬜ |
 | 5a | Raise the default `maxDownloadBytes` from 2 GiB to 8 GiB for big ISOs | `internal/config/config.go`, `config.json`, `internal/download/downloader.go`, `README.md` | ✅ |
 | 5b | Download: accept image MIME types in the `Accept` header | `internal/download/downloader.go` | ⬜ |
 | 6 | GUI: optional setup path display in the existing details panel, no other change | `internal/ui/app_details.go` | ⬜ |
@@ -126,3 +129,7 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
   8 GiB image needs roughly 9.5 MB/s to finish in time.
 - `lockAndVerifyInstaller` opens the image with `FILE_SHARE_READ` only;
   `AttachVirtualDisk` must still be able to open it read-only. Verify in step 3.
+- Until steps 3 and 4 land, an ISO/IMG app is downloaded and SHA-256 checked
+  as usual, then `install.Run` stops it with "instalace z obrazu disku ISO
+  zatím není podporována". `auto` with an unknown extension (e.g. the panel's
+  `app.bin`) still loads, exactly as before, and fails only when installed.
