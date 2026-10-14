@@ -232,7 +232,7 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | 5b | ~~Download: accept image MIME types in the `Accept` header~~ Not needed: the header already ends with `*/*` | — | ✅ |
 | 6 | GUI: installer type and image state in the details panel, unverified/installable/invalid states, invalid images blocked, the three Czech messages; state kept outside the GUI; tests and Wine screenshots | `internal/install/image_status.go` (new), `image.go`, `installer.go`, `internal/ui/app.go`, `app_details.go`, `installation.go`, `main_window.go` | ✅ |
 | 7 | Docs: README table for `installerType`, the autorun.inf requirement; ISO example in `apps_example.json` | `README.md`, `apps_example.json` | ✅ |
-| 8 | Admin panel (postponed by Jandy, do later): allow `.iso`/`.img` uploads, `iso`/`img` types, `.iso`/`.img` file names | `admin_panel_web/ProvisionerJsonCRUD.php`, `api.php`, `ProvisionerChunkUpload.php`, `index.php`, `assets/admin.js` | ⬜ |
+| 8 | Admin panel: allow `.iso`/`.img` uploads, `iso`/`img` types, `.iso`/`.img` file names, `wait` forced for MSI/ISO/IMG, autorun.inf hint; panel split into small files during the same change | `admin_panel_web/` | ✅ |
 | 9 | Build with `build.ps1`, test on real Windows with an ISO and an IMG, both EXE and MSI inside | — | ⬜ needs a real Windows 10/11 machine |
 | 10 | Final verification: tests for every scenario, gofmt/vet/build, user-friendly fallback texts for mount failures | `internal/install/image_test.go`, `image_status.go` | ✅ |
 
@@ -267,11 +267,10 @@ Remaining platform limitations:
 ## Open questions
 
 - Defaults kept until Jandy decides: an image or MSI with `wait: false` makes the whole list invalid (same as MSI); `.bat`/`.cmd`/`.hta` autorun targets stay rejected; no "Znovu ověřit" button (invalid images are retried after restart or a changed list entry); raising the 900 s download timeout to 3600 s is recommended but not done.
-- Step 8 is postponed: until the panel accepts `.iso`/`.img` uploads and
-  file names, ISO apps can only be added by editing `apps.json` by hand.
 - `network.timeoutSeconds` (default 900 s) limits the whole download, so an
   8 GiB image needs roughly 9.5 MB/s to finish in time.
 - `lockAndVerifyInstaller` opens the image with `FILE_SHARE_READ` only;
   `AttachVirtualDisk` must still be able to open it read-only. Verify in step 9 on real Windows.
-- `auto` with an unknown extension (e.g. the panel's `app.bin`) still loads,
-  exactly as before, and fails only when installed.
+- `auto` with an unknown extension (e.g. a hand-written `app.bin`) still loads,
+  exactly as before, and fails only when installed. The panel no longer saves
+  such entries for files it manages.
