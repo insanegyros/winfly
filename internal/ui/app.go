@@ -3,10 +3,10 @@ package ui
 import (
 	"sync/atomic"
 
-	"jandy.cz/ess-provisioner/internal/config"
-	"jandy.cz/ess-provisioner/internal/download"
-	"jandy.cz/ess-provisioner/internal/systeminfo"
-	"jandy.cz/ess-provisioner/internal/ui/win32"
+	"jandy.cz/winfly/internal/config"
+	"jandy.cz/winfly/internal/download"
+	"jandy.cz/winfly/internal/systeminfo"
+	"jandy.cz/winfly/internal/ui/win32"
 )
 
 // app is the state shared by all windows of the program.
@@ -95,7 +95,7 @@ func (a *app) wakeUI(message uint32) {
 }
 
 func (a *app) logStartupState() {
-	a.logf("Připraveno. ESSENS Provisioner běží s oprávněním správce.")
+	a.logf("Připraveno. WinFly běží s oprávněním správce.")
 	switch {
 	case a.appListErr != nil:
 		a.logf("Vzdálený seznam aplikací se nepodařilo načíst: %v", a.appListErr)

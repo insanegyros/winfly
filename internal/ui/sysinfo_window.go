@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"jandy.cz/ess-provisioner/internal/systeminfo"
-	"jandy.cz/ess-provisioner/internal/ui/win32"
+	"jandy.cz/winfly/internal/systeminfo"
+	"jandy.cz/winfly/internal/ui/win32"
 )
 
 // Size of the inside of the system information window, in layout units.

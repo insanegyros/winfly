@@ -1,6 +1,6 @@
 package ui
 
-import "jandy.cz/ess-provisioner/internal/ui/win32"
+import "jandy.cz/winfly/internal/ui/win32"
 
 // form creates the controls of one window. It is the "partials" layer of the
 // UI: every method creates one kind of control with the right styles, the

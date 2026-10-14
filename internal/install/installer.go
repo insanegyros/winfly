@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"jandy.cz/ess-provisioner/internal/config"
+	"jandy.cz/winfly/internal/config"
 )
 
 type Logger func(format string, args ...any)

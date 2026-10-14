@@ -1,12 +1,12 @@
 package ui
 
-import "jandy.cz/ess-provisioner/internal/ui/win32"
+import "jandy.cz/winfly/internal/ui/win32"
 
 // Window class names. Each top-level window needs its own registered class.
 const (
-	mainWindowClass       = "ESSProvisionerMainWindow"
-	logWindowClass        = "ESSProvisionerLogWindow"
-	systemInfoWindowClass = "ESSProvisionerSystemInfoWindow"
+	mainWindowClass       = "WinFlyMainWindow"
+	logWindowClass        = "WinFlyLogWindow"
+	systemInfoWindowClass = "WinFlySystemInfoWindow"
 )
 
 // Control IDs. Windows reports clicks and selection changes as WM_COMMAND or

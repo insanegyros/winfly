@@ -1,6 +1,6 @@
 package ui
 
-import "jandy.cz/ess-provisioner/internal/ui/win32"
+import "jandy.cz/winfly/internal/ui/win32"
 
 // control is any child window on a form: a label, button, text box...
 // The zero value is "no control" and every method on it does nothing, so a

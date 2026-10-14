@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"jandy.cz/ess-provisioner/internal/config"
-	"jandy.cz/ess-provisioner/internal/install"
-	"jandy.cz/ess-provisioner/internal/ui/win32"
+	"jandy.cz/winfly/internal/config"
+	"jandy.cz/winfly/internal/install"
+	"jandy.cz/winfly/internal/ui/win32"
 )
 
 const installTitle = "Instalace aplikací"

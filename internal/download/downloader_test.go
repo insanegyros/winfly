@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"jandy.cz/ess-provisioner/internal/config"
+	"jandy.cz/winfly/internal/config"
 )
 
 func disableCacheSecurityForTest(t *testing.T) {

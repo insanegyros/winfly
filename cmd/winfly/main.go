@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"runtime"
 
-	"jandy.cz/ess-provisioner/internal/admin"
-	"jandy.cz/ess-provisioner/internal/config"
-	"jandy.cz/ess-provisioner/internal/ui"
+	"jandy.cz/winfly/internal/admin"
+	"jandy.cz/winfly/internal/config"
+	"jandy.cz/winfly/internal/ui"
 )
 
 func main() {

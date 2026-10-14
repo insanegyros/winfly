@@ -13,22 +13,22 @@ $oldGOARCH = $env:GOARCH
 
 Push-Location $root
 try {
-    Write-Host "Overuje se ESSENS Provisioner..."
+    Write-Host "Overuje se WinFly..."
     go test ./...
     go vet ./...
 
     $env:GOARCH = $Architecture
 
     $outputName = if ($Architecture -eq "amd64") {
-        "ESSProvisioner.exe"
+        "WinFly.exe"
     }
     else {
-        "ESSProvisioner-$Architecture.exe"
+        "WinFly-$Architecture.exe"
     }
 
     $outputPath = Join-Path $dist $outputName
     Write-Host "Sestavuje se GUI aplikace Windows pro architekturu $Architecture..."
-    go build -trimpath -ldflags "-s -w -H=windowsgui" -o $outputPath ./cmd/essprovisioner
+    go build -trimpath -ldflags "-s -w -H=windowsgui" -o $outputPath ./cmd/winfly
 
     Write-Host "Vytvoreno: $outputPath"
 }

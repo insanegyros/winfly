@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"jandy.cz/ess-provisioner/internal/config"
+	"jandy.cz/winfly/internal/config"
 )
 
 type Logger func(format string, args ...any)
@@ -36,7 +36,7 @@ func New(network config.NetworkConfig, cacheDirectory string) (*Manager, error) 
 		if err != nil {
 			return nil, fmt.Errorf("určení adresáře mezipaměti: %w", err)
 		}
-		cacheDirectory = filepath.Join(base, "ESSProvisioner", "cache")
+		cacheDirectory = filepath.Join(base, "WinFly", "cache")
 	}
 	cacheDirectory = filepath.Clean(cacheDirectory)
 	if !filepath.IsAbs(cacheDirectory) {
@@ -122,7 +122,7 @@ func (m *Manager) Fetch(ctx context.Context, app config.AppConfig, log Logger) (
 	if err != nil {
 		return "", fmt.Errorf("vytvoření požadavku na stažení: %w", err)
 	}
-	req.Header.Set("User-Agent", "ESSProvisioner/1.1")
+	req.Header.Set("User-Agent", "WinFly/1.1")
 	req.Header.Set("Accept", "application/octet-stream, application/x-msdownload, */*")
 
 	resp, err := m.client.Do(req)
