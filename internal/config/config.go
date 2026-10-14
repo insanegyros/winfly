@@ -49,6 +49,10 @@ type AppConfig struct {
 	SuccessExitCodes []int    `json:"successExitCodes"`
 }
 
+// DefaultMaxDownloadBytes is the size limit of one downloaded installer when
+// network.maxDownloadBytes is not set. 8 GiB fits large ISO images.
+const DefaultMaxDownloadBytes int64 = 8 * 1024 * 1024 * 1024
+
 type remoteDocument struct {
 	Apps []AppConfig `json:"apps"`
 }
@@ -160,7 +164,7 @@ func applyConfigDefaults(cfg *Config) {
 		cfg.Network.TimeoutSeconds = 900
 	}
 	if cfg.Network.MaxDownloadBytes <= 0 {
-		cfg.Network.MaxDownloadBytes = 2 * 1024 * 1024 * 1024
+		cfg.Network.MaxDownloadBytes = DefaultMaxDownloadBytes
 	}
 }
 

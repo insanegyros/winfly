@@ -19,7 +19,7 @@ texts in Czech.
 |---|---|---|
 | Embedded config | `internal/config/config.go`, `config.json` | Product name, cache dir, remote URL, network limits. |
 | Remote app list | `internal/config/remote.go`, `config.go` | GET the JSON, strict decode (`DisallowUnknownFields`), defaults in `applyAppDefaults`, rules in `validateApps`. `installerType` must be `auto`, `exe` or `msi`. |
-| Download | `internal/download/downloader.go` | `Manager.Fetch` streams to `<cache>\<fileName>.*.part`, hashes while writing, compares SHA-256, renames into place, reuses a cached file whose hash matches. Cache dir ACL is locked to SYSTEM and Administrators (`cache_security.go`). Size limit `network.maxDownloadBytes` (default 2 GiB). |
+| Download | `internal/download/downloader.go` | `Manager.Fetch` streams to `<cache>\<fileName>.*.part`, hashes while writing, compares SHA-256, renames into place, reuses a cached file whose hash matches. Cache dir ACL is locked to SYSTEM and Administrators (`cache_security.go`). Size limit `network.maxDownloadBytes` (default 8 GiB). |
 | SHA-256 re-check and lock | `internal/install/filelock.go` | `lockAndVerifyInstaller` opens the file with `FILE_SHARE_READ` only, re-hashes it, and keeps the handle open while the installer runs. |
 | Execution | `internal/install/installer.go` | `Run` → `installerKind` (type from `installerType` or file extension) → `commandFor` (EXE runs directly, MSI via `%SystemRoot%\System32\msiexec.exe /i`) → `exec.Cmd`, exit code checked against `successExitCodes`, 1641/3010 mean restart. |
 | Logging | `install.Logger`, `download.Logger` | Both are `func(format string, args ...any)`; the UI passes `app.logf`, which writes to the log window. |
@@ -110,17 +110,19 @@ Status: ✅ done, 🔄 in progress, ⬜ not started.
 | 2 | Config: `iso`/`img` types, `setupPath` field, validation (safe relative path, EXE/MSI extension, `wait` required), tests | `internal/config/config.go`, `internal/config/config_test.go` | ⬜ |
 | 3 | Mount and unmount a disk image via `virtdisk.dll`, find its drive letter; test on real Windows 10/11 | `internal/install/diskimage.go` (new) | ⬜ |
 | 4 | Detect image kinds and run the setup program from the mounted image; split `Run` into small helpers | `internal/install/installer.go`, `internal/install/installer_test.go` | ⬜ |
-| 5 | Download: accept image MIME types in the `Accept` header; consider a larger default `maxDownloadBytes` for big ISOs | `internal/download/downloader.go`, `internal/config/config.go` | ⬜ |
+| 5a | Raise the default `maxDownloadBytes` from 2 GiB to 8 GiB for big ISOs | `internal/config/config.go`, `config.json`, `internal/download/downloader.go`, `README.md` | ✅ |
+| 5b | Download: accept image MIME types in the `Accept` header | `internal/download/downloader.go` | ⬜ |
 | 6 | GUI: optional setup path display in the existing details panel, no other change | `internal/ui/app_details.go` | ⬜ |
 | 7 | Docs: README table for `installerType`, `setupPath`; ISO example in `apps_example.json` | `README.md`, `apps_example.json` | ⬜ |
-| 8 | Admin panel (needs Jandy's go-ahead): allow `.iso`/`.img` uploads, `iso`/`img` types and the `setupPath` field | `admin_panel_web/ProvisionerJsonCRUD.php`, `api.php`, `ProvisionerChunkUpload.php`, `index.php`, `assets/admin.js` | ⬜ |
+| 8 | Admin panel (postponed by Jandy, do later): allow `.iso`/`.img` uploads, `iso`/`img` types and the `setupPath` field | `admin_panel_web/ProvisionerJsonCRUD.php`, `api.php`, `ProvisionerChunkUpload.php`, `index.php`, `assets/admin.js` | ⬜ |
 | 9 | Build with `build.ps1`, test on real Windows with an ISO and an IMG, both EXE and MSI inside | — | ⬜ |
 
 ## Open questions
 
-- Step 8: the remote JSON is decoded strictly, so the panel must know
-  `setupPath` before an ISO app can be saved through it. Until then such apps
-  can only be added by editing `apps.json` by hand.
-- `maxDownloadBytes` default is 2 GiB; many Office or OS ISOs are larger.
+- Step 8 is postponed: the remote JSON is decoded strictly, so until the
+  panel knows `setupPath`, ISO apps can only be added by editing `apps.json`
+  by hand.
+- `network.timeoutSeconds` (default 900 s) limits the whole download, so an
+  8 GiB image needs roughly 9.5 MB/s to finish in time.
 - `lockAndVerifyInstaller` opens the image with `FILE_SHARE_READ` only;
   `AttachVirtualDisk` must still be able to open it read-only. Verify in step 3.

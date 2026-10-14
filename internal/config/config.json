@@ -6,7 +6,7 @@
     "configTimeoutSeconds": 30,
     "maxConfigBytes": 1048576,
     "timeoutSeconds": 900,
-    "maxDownloadBytes": 2147483648,
+    "maxDownloadBytes": 8589934592,
     "allowHttp": false
   }
 }

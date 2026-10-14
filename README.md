@@ -44,7 +44,7 @@ Soubor `internal/config/config.json` se při sestavení vloží do `WinFly.exe`.
     "configTimeoutSeconds": 30,
     "maxConfigBytes": 1048576,
     "timeoutSeconds": 900,
-    "maxDownloadBytes": 2147483648,
+    "maxDownloadBytes": 8589934592,
     "allowHttp": false
   }
 }
@@ -60,7 +60,7 @@ Soubor `internal/config/config.json` se při sestavení vloží do `WinFly.exe`.
 | `network.configTimeoutSeconds` | Celkový časový limit pro načtení vzdálené konfigurace. Výchozí hodnota je 30 sekund. |
 | `network.maxConfigBytes` | Nejvyšší velikost vzdálené konfigurace. Výchozí hodnota je 1 MiB. |
 | `network.timeoutSeconds` | Celkový časový limit pro stažení jednoho instalátoru. Výchozí hodnota je 900 sekund. |
-| `network.maxDownloadBytes` | Nejvyšší velikost jednoho instalátoru. Výchozí hodnota je 2 GiB. |
+| `network.maxDownloadBytes` | Nejvyšší velikost jednoho instalátoru. Výchozí hodnota je 8 GiB. |
 | `network.allowHttp` | Povolí nešifrované HTTP pro konfiguraci i instalátory. Výchozí hodnota `false` vyžaduje HTTPS. |
 
 Schéma této konfigurace je v `docs/config.schema.json`.
