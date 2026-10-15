@@ -32,13 +32,11 @@ body {
     min-width: 0;
 }
 
-.app-name {
-    overflow-wrap: anywhere;
-}
-
+.app-name,
 .app-description,
 .app-url,
-.app-file {
+.app-file,
+.upload-note code {
     overflow-wrap: anywhere;
     word-break: break-word;
 }
@@ -106,11 +104,10 @@ body {
 }
 
 
-.upload-note code {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+.upload-progress {
+    height: 0.8rem;
 }
 
-#installerUploadGroup.d-none {
-    display: none !important;
+.login-card {
+    max-width: 430px;
 }

@@ -138,7 +138,7 @@ Položka s `installerType` `iso` nebo `img` (nebo `auto` a příponou `.iso`/`.i
 
 V přehledu aplikace řádek „Typ instalátoru“ ukazuje stav obrazu: neověřeno, ověřeno, nebo neplatný. Neplatný obraz (chybí `autorun.inf`, neplatný `autorun.inf`, nepodporovaný formát) se do restartu WinFly nebo do změny položky v seznamu znovu nestahuje ani nespouští.
 
-Omezení: WinFly čeká jen na proces spuštěný z `autorun.inf`. Pokud ten spustí jiný instalátor a hned skončí, obraz se odpojí dříve; pro takový instalátor uveďte v `arguments` jeho vlastní parametr pro čekání. Správa aplikací ve webovém panelu zatím soubory `.iso`/`.img` nepodporuje.
+Omezení: WinFly čeká jen na proces spuštěný z `autorun.inf`. Pokud ten spustí jiný instalátor a hned skončí, obraz se odpojí dříve; pro takový instalátor uveďte v `arguments` jeho vlastní parametr pro čekání. Webový panel (`admin_panel_web/`) umí obrazy `.iso`/`.img` nahrát i upravit.
 
 ## Stahování a spuštění instalátorů
 
@@ -233,8 +233,21 @@ internal/systemdialogs/   Otevření Možností napájení a Vlastností systém
 internal/ui/              Okna aplikace (hlavní, protokol, systémové informace) přes Win32
 internal/ui/win32/        Tenká vrstva nad voláními Win32 API používaná oknem aplikace
 docs/                     Schémata, ukázkový JSON a ukázkový koncový bod PHP
+admin_panel_web/          Webový panel pro správu apps.json (čisté PHP)
 build.ps1                 Testy, statická kontrola a sestavení GUI aplikace
 ```
+
+## Webový panel
+
+Složka `admin_panel_web/` je administrace, která spravuje `apps.json` a nahrává instalátory EXE, MSI, ISO a IMG. Je napsaná v čistém PHP (7.4 nebo novější) s Bootstrapem a jQuery uloženými přímo ve složce `assets/vendor/`. Nepotřebuje Composer, npm, databázi ani přístup do konzole, stačí ji nahrát na běžný webhosting.
+
+- Nastavení (heslo, cesta k `apps.json`, složka a veřejná URL instalátorů) je v `config.php`.
+- Velké soubory se nahrávají po blocích, takže limity `upload_max_filesize` a `post_max_size` jejich velikost neomezují.
+- Panel ukládá jen záznamy, které WinFly přijme: typ instalátoru musí odpovídat souboru a MSI, ISO a IMG mají vždy zapnuté čekání na dokončení.
+
+Struktura: `index.php` (přihlášení a stránka), `api.php` (JSON API pro skripty stránky), `src/` (logika PHP), `views/` (šablony HTML), `assets/js/` (skripty stránky). Složky `src/` a `views/` nejsou určené k přímému přístupu z prohlížeče.
+
+Při aktualizaci starší verze panelu na serveru smažte soubory `ProvisionerJsonCRUD.php`, `ProvisionerChunkUpload.php`, `assets/admin.js` a složku `.provisioner-uploads`, pokud existuje. Nový `config.php` obsahuje heslo; pokud ponecháváte vlastní starší `config.php`, doplňte do něj položku `adminPassword`.
 
 ## Ověření před nasazením
 

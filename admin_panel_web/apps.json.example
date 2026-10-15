@@ -8,7 +8,7 @@
       "url": "https://example.com/installer.exe",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000",
       "fileName": "installer.exe",
-      "installerType": "auto", //exe, msi
+      "installerType": "auto", //exe, msi, iso, img
       "arguments": ["/silent"],
       "wait": true,
       "successExitCodes": [
