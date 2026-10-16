@@ -53,14 +53,6 @@ final class InstallerStorage
     }
 
     /**
-     * Returns the installer type the URL's file extension stands for, or null.
-     */
-    public function installerTypeOfUrl(string $url): ?string
-    {
-        return installerTypeFromFileName($this->managedFileNameOf($url) ?? rawurldecode((string) parse_url($url, PHP_URL_PATH)));
-    }
-
-    /**
      * @param array<int, array<string, mixed>> $apps
      */
     public function isUsedByAnyOf(string $fileName, array $apps): bool

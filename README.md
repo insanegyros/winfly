@@ -243,7 +243,7 @@ Složka `admin_panel_web/` je administrace, která spravuje `apps.json` a nahrá
 
 - Nastavení (heslo, cesta k `apps.json`, složka a veřejná URL instalátorů) je v `config.php`.
 - Velké soubory se nahrávají po blocích, takže limity `upload_max_filesize` a `post_max_size` jejich velikost neomezují.
-- Panel ukládá jen záznamy, které WinFly přijme: typ instalátoru musí odpovídat souboru a MSI, ISO a IMG mají vždy zapnuté čekání na dokončení.
+- Typ instalátoru i název staženého souboru se berou z nahraného souboru (`installerType` je `auto`, `fileName` je název nahraného souboru), ve formuláři se nezadávají. MSI, ISO a IMG mají vždy zapnuté čekání na dokončení.
 
 Struktura: `index.php` (přihlášení a stránka), `api.php` (JSON API pro skripty stránky), `src/` (logika PHP), `views/` (šablony HTML), `assets/js/` (skripty stránky). Složky `src/` a `views/` nejsou určené k přímému přístupu z prohlížeče.
 

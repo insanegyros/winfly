@@ -6,10 +6,6 @@
     const helpers = WinFly.helpers;
     const DEFAULT_EXIT_CODES = [0, 1641, 3010];
 
-    // The fileName value filled in from the chosen file; replaced again when
-    // another file is chosen, unless the administrator changed it.
-    let autoFileName = null;
-
     function openForCreate() {
         reset();
         $('#appModalTitle').text('Přidat aplikaci');
@@ -22,14 +18,12 @@
         reset();
         $('#installerUploadGroup').addClass('d-none');
         $('#installerFile').prop({disabled: true, required: false});
-        $('#appForm').data('installerType', helpers.installerTypeFromUrl(app.url));
+        $('#appForm').data('installerType', helpers.resolveInstallerType(app.installerType || 'auto', app.fileName));
 
         $('#appId').val(app.id);
         $('#appName').val(app.name || '');
         $('#appDescription').val(app.description || '');
         $('#sha256').val(app.sha256 || '');
-        $('#fileName').val(app.fileName || '');
-        $('#installerType').val(app.installerType || 'auto');
         $('#waitForInstaller').prop('checked', app.wait === true);
         setRows('#argumentsList', app.arguments || []);
         setRows('#exitCodesList', app.successExitCodes || []);
@@ -47,7 +41,6 @@
         $('#installerFile').prop({disabled: false, required: true});
         setRows('#argumentsList', []);
         setRows('#exitCodesList', DEFAULT_EXIT_CODES);
-        autoFileName = null;
         showError('');
         hideUploadProgress();
         setBusy(false);
@@ -77,8 +70,6 @@
             name: $('#appName').val().trim(),
             description: $('#appDescription').val().trim(),
             sha256: $('#sha256').val().trim(),
-            fileName: $('#fileName').val().trim(),
-            installerType: $('#installerType').val(),
             arguments: rowValues('#argumentsList'),
             wait: $('#waitForInstaller').is(':checked'),
             successExitCodes: rowValues('#exitCodesList').map(toExitCode).filter(function (code, index, codes) {
@@ -96,53 +87,30 @@
     }
 
     /**
-     * Applies the client's rules to the form: the installer type must match
-     * the file, MSI and disk images always wait, and disk images show the
-     * autorun.inf hint.
+     * Applies the client's rules for the installer type (taken from the file
+     * extension): only EXE, MSI, ISO and IMG can be uploaded, MSI and disk
+     * images always wait, and disk images show the autorun.inf hint.
      */
     function refreshInstallerRules() {
         const file = selectedFile();
         const editing = editedAppId() !== null;
-        const fileType = editing ? $('#appForm').data('installerType') : helpers.installerTypeFromFileName(file && file.name);
-        const installerType = $('#installerType').val();
-        const fileName = $('#fileName').val().trim() || (file ? file.name : '');
-        const resolvedType = helpers.resolveInstallerType(installerType, fileName);
-        const mustWait = helpers.installerTypeRequiresWait(resolvedType);
+        const installerType = editing ? $('#appForm').data('installerType') : helpers.installerTypeFromFileName(file && file.name);
+        const mustWait = helpers.installerTypeRequiresWait(installerType);
 
         if (mustWait) {
             $('#waitForInstaller').prop('checked', true);
         }
         $('#waitForInstaller').prop('disabled', mustWait);
         $('#waitRequiredHint').toggleClass('d-none', !mustWait);
-        $('#diskImageHint').toggleClass('d-none', !helpers.isDiskImageType(resolvedType));
+        $('#diskImageHint').toggleClass('d-none', !helpers.isDiskImageType(installerType));
 
         let fileProblem = '';
         if (!editing) {
             fileProblem = !file ? 'Vyberte instalační soubor EXE, MSI, ISO nebo IMG.'
-                : !fileType ? 'Nahrát lze pouze soubor .exe, .msi, .iso nebo .img.' : '';
+                : !installerType ? 'Nahrát lze pouze soubor .exe, .msi, .iso nebo .img.' : '';
         }
-        const typeMismatch = Boolean(fileType) && resolvedType !== fileType;
-        setProblem('#installerFile', fileProblem);
-        setProblem('#installerType', typeMismatch && installerType !== 'auto' ? 'Zvolený typ instalátoru neodpovídá souboru .' + fileType + '.' : '');
-        setProblem('#fileName', typeMismatch && installerType === 'auto'
-            ? 'Při automatickém typu musí název končit příponou .' + fileType + ', jinak WinFly nepozná typ instalátoru.' : '');
-    }
-
-    function setProblem(selector, message) {
-        $(selector)[0].setCustomValidity(message);
-        $(selector + 'Feedback').text(message);
-    }
-
-    /** Fills in fileName from the chosen file, unless the administrator typed their own. */
-    function fillFileNameFromChosenFile() {
-        const file = selectedFile();
-        const current = $('#fileName').val();
-        if (file && (current.trim() === '' || current === autoFileName)) {
-            $('#fileName').val(file.name);
-            autoFileName = file.name;
-        }
-        hideUploadProgress();
-        refreshInstallerRules();
+        $('#installerFile')[0].setCustomValidity(fileProblem);
+        $('#installerFileFeedback').text(fileProblem);
     }
 
     /** Disables the fields and buttons while saving. cancelLabel: text of the enabled cancel button, or '' to disable it. */
@@ -216,12 +184,9 @@
     }
 
     function bindEvents() {
-        $('#installerFile').on('change', fillFileNameFromChosenFile);
-        $('#installerType, #fileName').on('input change', refreshInstallerRules);
-        $('#fileName').on('input', function () {
-            if (this.value !== autoFileName) {
-                autoFileName = null;
-            }
+        $('#installerFile').on('change', function () {
+            hideUploadProgress();
+            refreshInstallerRules();
         });
         $('#appForm').on('click', '[data-add-row]', function () {
             addRow($(this).data('addRow'), '');

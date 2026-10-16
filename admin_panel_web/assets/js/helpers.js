@@ -29,15 +29,6 @@ window.WinFly = window.WinFly || {};
         return DISK_IMAGE_TYPES.includes(resolvedType);
     }
 
-    /** Returns the installer type of the file a URL points to, or null. */
-    function installerTypeFromUrl(url) {
-        try {
-            return installerTypeFromFileName(decodeURIComponent(new URL(url).pathname));
-        } catch (error) {
-            return null;
-        }
-    }
-
     /** Returns the URL when it is a valid http(s) URL, otherwise an empty string. */
     function safeHttpUrl(value) {
         try {
@@ -87,7 +78,6 @@ window.WinFly = window.WinFly || {};
         resolveInstallerType: resolveInstallerType,
         installerTypeRequiresWait: installerTypeRequiresWait,
         isDiskImageType: isDiskImageType,
-        installerTypeFromUrl: installerTypeFromUrl,
         safeHttpUrl: safeHttpUrl,
         escapeHtml: escapeHtml,
         formatMultilineText: formatMultilineText,

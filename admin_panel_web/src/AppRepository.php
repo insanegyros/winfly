@@ -56,8 +56,6 @@ final class AppRepository
      */
     public function create(array $data): array
     {
-        assertOnlyEditableFields($data);
-
         return $this->change(function (array &$apps) use ($data): array {
             $nextId = max(array_merge([0], array_column($apps, 'id'))) + 1;
             $app = buildAppRecord($nextId, false, $data);
@@ -68,22 +66,17 @@ final class AppRepository
     }
 
     /**
-     * Changes the given editable fields and keeps the rest.
+     * Changes the given fields and keeps the rest.
      *
      * @param array<string, mixed> $changes
      * @return array<string, mixed>
      */
     public function update(int $id, array $changes): array
     {
-        assertOnlyEditableFields($changes);
-        if (array_key_exists('url', $changes)) {
-            throw new ApiError('URL instalačního souboru nelze po vytvoření aplikace změnit.');
-        }
-
         return $this->change(function (array &$apps) use ($id, $changes): array {
             $index = self::indexOf($apps, $id);
             $current = $apps[$index];
-            $apps[$index] = buildAppRecord($id, ($current['enabled'] ?? false) === true, array_merge(editableFieldsOf($current), $changes));
+            $apps[$index] = buildAppRecord($id, ($current['enabled'] ?? false) === true, array_merge(storedFieldsOf($current), $changes));
 
             return $apps[$index];
         });
@@ -100,7 +93,7 @@ final class AppRepository
         return $this->change(function (array &$apps) use ($id, $enabled): array {
             $index = self::indexOf($apps, $id);
             if ($enabled) {
-                $apps[$index] = buildAppRecord($id, true, editableFieldsOf($apps[$index]));
+                $apps[$index] = buildAppRecord($id, true, storedFieldsOf($apps[$index]));
             }
             $apps[$index]['enabled'] = $enabled;
 
