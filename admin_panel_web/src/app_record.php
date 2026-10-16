@@ -5,23 +5,19 @@ declare(strict_types=1);
 // Validation of one app record in apps.json. The order of keys in the returned
 // record is the order the client and earlier panel versions use.
 
-/** Fields the administrator may set; id and enabled are managed by the panel. */
-const APP_EDITABLE_FIELDS = [
-    'name',
-    'description',
-    'url',
-    'sha256',
-    'fileName',
-    'installerType',
-    'arguments',
-    'wait',
-    'successExitCodes',
-];
+/** Fields the administrator sets in the form. */
+const APP_EDITABLE_FIELDS = ['name', 'description', 'sha256', 'arguments', 'wait', 'successExitCodes'];
+
+/**
+ * Stored fields besides id and enabled. url and fileName come from the
+ * uploaded file, and installerType is "auto" (the client decides by the
+ * fileName extension); older records may keep an explicit type.
+ */
+const APP_STORED_FIELDS = ['name', 'description', 'url', 'sha256', 'fileName', 'installerType', 'arguments', 'wait', 'successExitCodes'];
 
 const APP_DEFAULTS = [
     'description' => '',
     'sha256' => '',
-    'fileName' => '',
     'installerType' => 'auto',
     'arguments' => [],
     'wait' => true,
@@ -44,9 +40,9 @@ function assertOnlyEditableFields(array $data): void
  * @param array<string, mixed> $app
  * @return array<string, mixed>
  */
-function editableFieldsOf(array $app): array
+function storedFieldsOf(array $app): array
 {
-    return array_intersect_key($app, array_flip(APP_EDITABLE_FIELDS));
+    return array_intersect_key($app, array_flip(APP_STORED_FIELDS));
 }
 
 /**
@@ -75,10 +71,7 @@ function buildAppRecord(int $id, bool $enabled, array $data): array
         throw new ApiError('installerType musí být jedna z hodnot: ' . implode(', ', INSTALLER_TYPES) . '.');
     }
 
-    $fileName = requireTextField($data, 'fileName', true);
-    if ($fileName === '') {
-        $fileName = defaultDownloadFileName($id, $installerType, $url);
-    }
+    $fileName = requireTextField($data, 'fileName', false);
     assertSafeFileName($fileName, 'fileName');
 
     $wait = $data['wait'];
@@ -104,39 +97,6 @@ function buildAppRecord(int $id, bool $enabled, array $data): array
         'wait' => $wait,
         'successExitCodes' => requireIntegerList($data['successExitCodes'], 'successExitCodes'),
     ];
-}
-
-/**
- * Throws when the installer type would not match the real file, for example
- * type "msi" for an uploaded .exe, or "auto" with a fileName ending in .exe
- * for an uploaded .iso.
- *
- * @param array<string, mixed> $data
- */
-function assertInstallerTypeMatchesFile(array $data, string $fileExtension, string $defaultFileName): void
-{
-    $installerType = strtolower(trim((string) ($data['installerType'] ?? 'auto')));
-    $fileName = trim((string) ($data['fileName'] ?? ''));
-    $resolvedType = resolveInstallerType($installerType, $fileName !== '' ? $fileName : $defaultFileName);
-
-    if ($resolvedType === $fileExtension) {
-        return;
-    }
-
-    if ($installerType === 'auto') {
-        throw new ApiError("Název souboru při stažení musí končit příponou .{$fileExtension}, jinak WinFly nepozná typ instalátoru.");
-    }
-
-    throw new ApiError("Zvolený typ instalátoru {$installerType} neodpovídá souboru .{$fileExtension}.");
-}
-
-function defaultDownloadFileName(int $id, string $installerType, string $url): string
-{
-    $extension = $installerType !== 'auto'
-        ? $installerType
-        : installerTypeFromFileName(rawurldecode((string) parse_url($url, PHP_URL_PATH))) ?? 'bin';
-
-    return "installer-{$id}.{$extension}";
 }
 
 /**

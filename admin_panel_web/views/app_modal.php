@@ -38,6 +38,7 @@
                                 Soubor se nahrává po malých blocích, takže může být větší než limity
                                 <code>post_max_size</code> a <code>upload_max_filesize</code>.
                                 Výsledná URL bude <code><?= h($settings['installerBaseUrl'] . '<název-souboru>') ?></code>.
+                                Typ instalátoru se určí podle přípony a do počítače uživatele se soubor stáhne pod stejným názvem.
                             </div>
                             <div class="invalid-feedback" id="installerFileFeedback"></div>
 
@@ -51,31 +52,6 @@
                                     <div class="progress-bar progress-bar-striped progress-bar-animated" id="uploadBar"></div>
                                 </div>
                                 <div class="form-text mt-1" id="uploadDetails"></div>
-                            </div>
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-5">
-                                <label for="installerType" class="form-label">
-                                    Typ instalátoru <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select" id="installerType" required>
-                                    <option value="auto">Automaticky (podle přípony)</option>
-                                    <option value="exe">EXE</option>
-                                    <option value="msi">MSI</option>
-                                    <option value="iso">ISO (obraz disku)</option>
-                                    <option value="img">IMG (obraz disku)</option>
-                                </select>
-                                <div class="invalid-feedback" id="installerTypeFeedback"></div>
-                            </div>
-                            <div class="col-md-7">
-                                <label for="fileName" class="form-label">Název souboru při stažení</label>
-                                <input type="text" class="form-control font-monospace" id="fileName" placeholder="Např. instalator.exe">
-                                <div class="invalid-feedback" id="fileNameFeedback"></div>
-                                <div class="form-text">
-                                    Název, pod kterým se instalátor uloží do počítače uživatele. Cesty ke složkám nejsou povoleny.
-                                    Prázdná hodnota se při vytvoření doplní názvem nahraného souboru.
-                                </div>
                             </div>
                         </div>
 

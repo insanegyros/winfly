@@ -149,7 +149,7 @@ final class ChunkUpload
 
     /**
      * Moves the finished installer into the installer folder and calls
-     * $createApp with its file name and extension. When $createApp fails, the
+     * $createApp with its file name. When $createApp fails, the
      * file is moved back so the upload can be finished again or cancelled.
      *
      * @return mixed what $createApp returns
@@ -182,7 +182,7 @@ final class ChunkUpload
             @chmod($destination, 0664);
 
             try {
-                return $createApp($fileName, $metadata['extension']);
+                return $createApp($fileName);
             } catch (Throwable $exception) {
                 if (!@rename($destination, $payloadPath)) {
                     throw new RuntimeException('Záznam aplikace se nepodařilo vytvořit a instalátor se nepodařilo vrátit do dočasné složky. Původní chyba: ' . $exception->getMessage(), 0, $exception);

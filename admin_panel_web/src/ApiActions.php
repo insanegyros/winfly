@@ -58,15 +58,6 @@ final class ApiActions
         $id = $this->requireAppId($request);
         $changes = $this->requireAppData($request);
 
-        $current = $this->apps->get($id);
-        $url = (string) ($current['url'] ?? '');
-        $installerType = $this->storage->installerTypeOfUrl($url);
-        if ($installerType !== null) {
-            $merged = array_merge(editableFieldsOf($current), $changes);
-            $defaultFileName = defaultDownloadFileName($id, strtolower((string) ($merged['installerType'] ?? 'auto')), $url);
-            assertInstallerTypeMatchesFile($merged, $installerType, $defaultFileName);
-        }
-
         return ['message' => 'Změny aplikace byly uloženy.', 'app' => $this->apps->update($id, $changes)];
     }
 
@@ -170,12 +161,10 @@ final class ApiActions
         $uploadId = requireNonEmptyText($request, 'uploadId', 'ID nahrávání');
         $appData = $this->requireAppData($request);
 
-        $app = $this->chunkUpload()->finish($uploadId, function (string $fileName, string $extension) use ($appData): array {
-            assertInstallerTypeMatchesFile($appData, $extension, $fileName);
+        $app = $this->chunkUpload()->finish($uploadId, function (string $fileName) use ($appData): array {
             $appData['url'] = $this->storage->urlOf($fileName);
-            if (trim((string) ($appData['fileName'] ?? '')) === '') {
-                $appData['fileName'] = $fileName;
-            }
+            $appData['fileName'] = $fileName;
+            $appData['installerType'] = 'auto';
 
             return $this->apps->create($appData);
         });
@@ -211,6 +200,8 @@ final class ApiActions
     }
 
     /**
+     * Returns the app fields from the form; only APP_EDITABLE_FIELDS are allowed.
+     *
      * @param array<string, mixed> $request
      * @return array<string, mixed>
      */
@@ -219,6 +210,7 @@ final class ApiActions
         if (!is_array($request['app'] ?? null)) {
             throw new ApiError('Požadavek musí obsahovat objekt app.');
         }
+        assertOnlyEditableFields($request['app']);
 
         return $request['app'];
     }
